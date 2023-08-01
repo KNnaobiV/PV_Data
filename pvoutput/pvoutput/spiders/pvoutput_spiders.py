@@ -199,4 +199,24 @@ class SystemInfoSpider(scrapy.Spider):
         "https://pvoutput.org/display.jsp?sid=34873"
     ]
 
-    #def parse(self, response):
+    def parse(self, response):
+        info_div = response.css("div.corner")
+        info_table = response.xpath("//table/tr")
+        info = info_table.xpath("./td[2]/input/@value").extract()
+        system_info = {
+            "Name": info_div.css("b::text").extract(),
+            "Number Of Panels": info[0],
+            "Panel Max Power": info[1],
+            "Size": info[2],
+            "Panel Brand/Model": info[3],
+            "Orientation": info[4],
+            "Number Of Inverters": info[5],
+            "Inverter Brand/Model": info[6],
+            "Inverter Size": info[7],
+            "Inverter Model": info[8],
+            "Installation Date": info[9],
+            "Shading": info[10],
+            "Tilt": info[11],
+            "Comments": info[12],
+        }
+        print(system_info)
