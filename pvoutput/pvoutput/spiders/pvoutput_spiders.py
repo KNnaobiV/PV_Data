@@ -4,6 +4,7 @@ import shutil
 from contextlib import suppress
 
 import scrapy
+import pandas as pd
 from ..definitions import SCRAPPER_ROOT_DIR
 
 class CountrySpider(scrapy.Spider):
@@ -103,23 +104,60 @@ class SystemLocation(scrapy.Spider):
         print(location)
 
 
-
-class DaySpider(scrapy.Spider):
-    def __init__(self, url):
-        self.url = url
-
-    name = "day"
+class AggregatePowerGenerationSpider(scrapy.Spider):
+    
+    name = "aggregate_power_generation_spider"
     start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=257"
+        # "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=w",
+        "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=m",
+        # "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=y"
     ]
 
-class HourSpider(scrapy.Spider):
+    def __init__(self):
+        self.items = []
+
+    def parse(self, response):
+        
+        table = response.xpath("//table[@id='tb']//tr")
+        for index, tr in enumerate(table):
+            if index >= 2:
+                item = {
+                    "Month": tr.xpath("td[1]//text()").extract(),
+                    "Generated": tr.xpath("td[2]//text()").extract(),
+                    "Efficiency": tr.xpath("td[3]//text()").extract(),
+                    "Exported": tr.xpath("td[4]//text()").extract(),
+                    "FIT Credit": tr.xpath("td[5]//text()").extract(),
+                    "Low": tr.xpath("td[6]//text()").extract(),
+                    "High": tr.xpath("td[7]//text()").extract(),
+                    "Average": tr.xpath("td[8]//text()").extract(),
+                    "Comments": tr.xpath("td[9]//text()").extract(),
+                }
+                self.items.append(item)
+            
+        next_link = response.xpath("//a[contains(text(), 'Next')]")
+        if next_link:
+            next_href = next_link[0].attrib["href"]
+            next_href = f"https://pvoutput.org/aggregate.jsp{next_href}"
+            yield scrapy.Request(next_href, self.parse)
+        else:
+            df = pd.DataFrame(
+                self.items, 
+                columns=[
+                    "Month", "Generated", "Efficiency", "FIT Credit", 
+                    "Exported", "Low", "High", "Average", "Comments"
+                ]
+            )
+            print(df)
+
+
+
+class HourlyPowerGenerationSpider(scrapy.Spider):
     def __init__(self, url):
         self.url = url
 
-    name = "hour"
+    name = "hourly_power_generation_spider"
     start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=257"
+        #"https://pvoutput.org/list.jsp?id=38078&sid=34873&v=0",
     ]
     
 class MonthSpider(scrapy.Spider):
