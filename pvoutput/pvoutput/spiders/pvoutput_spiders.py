@@ -105,7 +105,6 @@ class SystemLocation(scrapy.Spider):
 
 
 class AggregatePowerGenerationSpider(scrapy.Spider):
-    
     name = "aggregate_power_generation_spider"
     start_urls = [
         # "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=w",
@@ -117,7 +116,6 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
         self.items = []
 
     def parse(self, response):
-        
         table = response.xpath("//table[@id='tb']//tr")
         for index, tr in enumerate(table):
             if index >= 2:
@@ -143,47 +141,62 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
             df = pd.DataFrame(
                 self.items, 
                 columns=[
-                    "Month", "Generated", "Efficiency", "FIT Credit", 
-                    "Exported", "Low", "High", "Average", "Comments"
+                    "Month", "Generated", "Efficiency", "Exported", 
+                    "FIT Credit", "Low", "High", "Average", "Comments"
                 ]
             )
             print(df)
 
 
-
-class HourlyPowerGenerationSpider(scrapy.Spider):
-    def __init__(self, url):
-        self.url = url
-
-    name = "hourly_power_generation_spider"
+class DailyPowerGenerationSpider(scrapy.Spider):
+    name = "daily_power_generation_spider"
     start_urls = [
-        #"https://pvoutput.org/list.jsp?id=38078&sid=34873&v=0",
+        "https://pvoutput.org/list.jsp?id=38078&sid=34873&v=0",
     ]
     
-class MonthSpider(scrapy.Spider):
-    def __init__(self, url):
-        self.url = url
+    def __init__(self):
+        self.items = []
 
-    name = "month"
+    def parse(self, response):
+        table = response.xpath("//table[@id='tb']//tr")
+        for index, tr in enumerate(table):
+            if index >= 2:
+                item = {
+                    "Date": tr.xpath("td[1]//text()").extract(),
+                    "Generated": tr.xpath("td[2]//text()").extract(),
+                    "Efficiency": tr.xpath("td[3]//text()").extract(),
+                    "Exported": tr.xpath("td[4]//text()").extract(),
+                    "Peak Power": tr.xpath("td[5]//text()").extract(),
+                    "Peak Time": tr.xpath("td[6]//text()").extract(),
+                    "Conditions": tr.xpath("td[7]//text()").extract(),
+                    "Temperature": tr.xpath("td[8]//text()").extract(),
+                    "Comments": tr.xpath("td[9]//text()").extract(),
+                }
+                self.items.append(item)
+            
+        next_link = response.xpath("//a[contains(text(), 'Next')]")
+        if next_link:
+            next_href = next_link[0].attrib["href"]
+            next_href = f"https://pvoutput.org/list.jsp{next_href}"
+            yield scrapy.Request(next_href, self.parse)
+        else:
+            df = pd.DataFrame(
+                self.items, 
+                columns=[
+                    "Date", "Generated", "Efficiency", "Exported", 
+                    "Peak Power", "Peak Time", "Conditions", "Tempertature", 
+                    "Comments"
+                ]
+            )
+            print(df)
+
+class SystemInfoSpider(scrapy.Spider):
+    # def __init__(self, url):
+    #     self.url = url
+
+    name = "system_info_spider"
     start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=257"
+        "https://pvoutput.org/display.jsp?sid=34873"
     ]
 
-
-class YearSpider(scrapy.Spider):
-    def __init__(self, url):
-        self.url = url
-
-    name = "year"
-    start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=257"
-    ]
-
-class WeekSpider(scrapy.Spider):
-    def __init__(self, url):
-        self.url = url
-
-    name = "week"
-    start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=257"
-    ]
+    #def parse(self, response):
