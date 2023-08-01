@@ -220,3 +220,6 @@ class SystemInfoSpider(scrapy.Spider):
             "Comments": info[12],
         }
         print(system_info)
+
+
+# Get system information, store the info and dfs with the system name, adding the system country
