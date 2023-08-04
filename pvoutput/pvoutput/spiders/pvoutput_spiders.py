@@ -7,48 +7,6 @@ import scrapy
 import pandas as pd
 from ..definitions import SCRAPPER_ROOT_DIR
 
-class CountrySpider(scrapy.Spider):
-    """
-    Gets all the system ids for a country
-    """
-    name = "country"
-
-    # def __init__(self, id, country):
-    #     self.id = id
-    #     self.country = country
-    
-    # start_urls = [
-    #     f"https://pvoutput.org/list.jsp?sid={self.id}"
-    # ]
-
-    start_urls = [
-        "https://pvoutput.org/ladder.jsp?f=1&country=224"
-    ]
-
-    def parse(self, response):
-        system_ids = []
-        table_rows = response.css(".e2, .o2")
-        for row in table_rows:
-            country = row.xpath(".//td[4]//text()").get()
-            if country.strip().lower() != "switzerland": #self.country:
-                continue
-
-            tag = row.css("a:first-child")
-            link = tag.xpath("@href").get()
-            system_id = re.search(r"sid=(\d+)", link)
-            if system_id:
-                system_ids.append(system_id.group(1))
-        
-        next_link = response.xpath("//a[contains(text(), 'Next')]")
-        if next_link:
-            next_href = next_link[0].attrib["href"]
-            next_href = f"https://pvoutput.org/ladder.jsp{next_href}"
-            yield scrapy.Request(next_href, self.parse)
-        else:
-            with open("out.txt", "w")as text_file:
-                for system_id in system_ids:
-                    text_file.write(system_id + "\n")
-
 
 class GetCountries(scrapy.Spider):
     """
@@ -82,9 +40,54 @@ class GetCountries(scrapy.Spider):
                 out_file.write(f"{country.strip()}:{country_id}\n")
 
 
-class SystemLocation(scrapy.Spider):
-    # def __init__(self, url):
-    #     self.url = url
+class CountrySpider(scrapy.Spider):
+    """
+    Gets all the system ids for a country
+    """
+    name = "country"
+
+    def __init__(self, id, country):
+        self.id = id
+        self.country = country
+
+    start_urls = [
+        f"https://pvoutput.org/ladder.jsp?f=1&country={self.id}"
+    ]
+
+    def parse(self, response):
+        system_ids = []
+        table_rows = response.css(".e2, .o2")
+        for row in table_rows:
+            country = row.xpath(".//td[4]//text()").get()
+            if country.strip().lower() != self.country:
+                continue
+
+            tag = row.css("a:first-child")
+            name = row.css("a:first-child::text").get()
+            link = tag.xpath("@href").get()
+            sid = re.search(r"sid=(\d+)", link)
+            id = re.search(r"id=(\d+)", link)
+            if sid and id:
+                system_ids.append({name: {
+                    "sid": sid,
+                    "id": id,
+                }})
+        
+        next_link = response.xpath("//a[contains(text(), 'Next')]")
+        if next_link:
+            next_href = next_link[0].attrib["href"]
+            next_href = f"https://pvoutput.org/ladder.jsp{next_href}"
+            yield scrapy.Request(next_href, self.parse)
+        else:
+            with open("out.txt", "w")as text_file:
+                for system_id in system_ids:
+                    text_file.write(system_id + "\n")
+
+
+class SystemLocationSpider(scrapy.Spider):
+    def __init__(self, url, id, sid):
+        self.url = url
+        self.sid = sid
 
     name = "system_location_spider"
     start_urls = [
@@ -101,19 +104,20 @@ class SystemLocation(scrapy.Spider):
         if location_info:
             location["latitude"] = location_info.group(1)
             location["longitude"] = location_info.group(2)
-        print(location)
+        return location
 
 
 class AggregatePowerGenerationSpider(scrapy.Spider):
+    def __init__(self, id, sid, duration):
+        self.items = []
+        self.id = id
+        self.sid = sid
+        self.duration = duration
+    
     name = "aggregate_power_generation_spider"
     start_urls = [
-        # "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=w",
-        "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=m",
-        # "https://pvoutput.org/aggregate.jsp?id=38078&sid=34873&v=0&t=y"
+        f"https://pvoutput.org/aggregate.jsp?id={self.id}&sid={self.sid}&t={self.duration}",
     ]
-
-    def __init__(self):
-        self.items = []
 
     def parse(self, response):
         table = response.xpath("//table[@id='tb']//tr")
@@ -145,17 +149,18 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                     "FIT Credit", "Low", "High", "Average", "Comments"
                 ]
             )
-            print(df)
+            return df
 
 
 class DailyPowerGenerationSpider(scrapy.Spider):
+    def __init__(self, id, sid):
+        self.items = []
+        self.id = id
+        self.sid = sid
     name = "daily_power_generation_spider"
     start_urls = [
-        "https://pvoutput.org/list.jsp?id=38078&sid=34873&v=0",
+        f"https://pvoutput.org/list.jsp?id={self.id}&sid={self.sid}",
     ]
-    
-    def __init__(self):
-        self.items = []
 
     def parse(self, response):
         table = response.xpath("//table[@id='tb']//tr")
@@ -188,15 +193,16 @@ class DailyPowerGenerationSpider(scrapy.Spider):
                     "Comments"
                 ]
             )
-            print(df)
+            return df
+
 
 class SystemInfoSpider(scrapy.Spider):
-    # def __init__(self, url):
-    #     self.url = url
+    def __init__(self, sid):
+        self.sid = sid
 
     name = "system_info_spider"
     start_urls = [
-        "https://pvoutput.org/display.jsp?sid=34873"
+        f"https://pvoutput.org/display.jsp?sid={self.sid}"
     ]
 
     def parse(self, response):
@@ -219,7 +225,23 @@ class SystemInfoSpider(scrapy.Spider):
             "Tilt": info[11],
             "Comments": info[12],
         }
-        print(system_info)
+        return system_info
 
 
 # Get system information, store the info and dfs with the system name, adding the system country
+
+def scrape_system_data(id, sid):
+    """
+    Scrapes all system data and saves it to the db
+
+    Parameters
+    ----------
+    id: str
+        unique system id
+    sid: str
+        unique system sid
+    """
+    system_location = SystemLocationSpider(id, sid).parse()
+    system_info = SystemInfoSpider(id, sid).parse()
+    daily_power_generation = DailyPowerGenerationSpider(id, sid).parse()
+    weekly_power_generation = AggregatePowerGenerationSpider(id, sid).parse()
