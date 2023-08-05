@@ -22,13 +22,13 @@ def get_systems_in_country(country):
     countries = get_countries()
     country_id = countries[country]
     process = CrawlerProcess(get_project_settings())
-    process.crawl(CountrySpider(id=coutnry_id, country=country))
+    process.crawl(CountrySpider, id=country_id, country=country)
     process.start()
 
 
 def get_system_info(id, sid, durations):
     """
-    Runs the crawler for all the systems in the country.
+    Runs the crawler to get information on a system.
 
     Parameters
     ----------
@@ -37,16 +37,18 @@ def get_system_info(id, sid, durations):
     sid: str
         system sid
     durations: list
-        list of durations
+        List durations. Durations be daily, weekly, monthly or
     """
     process = CrawlerProcess(get_project_settings())
+    pipeline = SystemPipeline(id, sid)
+    process.configure()
+    process.crawl(SystemInfoSpider, id=id, sid=sid, )
+    process.crawl(SystemLocationSpider, sid=sid)
     duration_dict = {
         "weekly": "w",
         "monthly": "m",
         "yearly": "y",
     }
-    process.crawl(SystemInfoSpider(id=id, sid=sid))
-    process.crawl(SystemLocationSpider(sid=sid))
     for duration in durations:
         if duration not in DURATIONS:
             raise ValueError(

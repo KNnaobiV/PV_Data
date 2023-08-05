@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -40,11 +41,11 @@ class GetCountries(scrapy.Spider):
                 out_file.write(f"{country.strip()}:{country_id}\n")
 
 
-class CountrySpider(scrapy.Spider):
+class CountrySystemsSpider(scrapy.Spider):
     """
     Gets all the system ids for a country
     """
-    name = "country"
+    name = "country_systems_spider"
 
     def __init__(self, id, country):
         self.id = id
@@ -91,20 +92,26 @@ class SystemLocationSpider(scrapy.Spider):
 
     name = "system_location_spider"
     start_urls = [
-        "https://pvoutput.org/listmap.jsp?sid=34873"
+        f"https://pvoutput.org/listmap.jsp?sid={self.sid}"
     ]
     
     def parse(self, response):
         location = {}
+        p_tag = response.xpath("(//p[@class='nowrap'])[2]")
+        system_name = response.xpath("//b[@class='large']//text()").get()
+        country = p_tag.css("a:last-child::text").get()
         script_map_info = response.xpath(
             "//script[contains(., 'var mymap = L.map')]").get()
         location_info = re.search(
             r"center:\s*\[([\d.-]+),\s*([\d.-]+)\]", script_map_info
         )
         if location_info:
+            location["country"] = country
+            location["name"] = system_name
             location["latitude"] = location_info.group(1)
             location["longitude"] = location_info.group(2)
-        return location
+        location = json.dumps(location)
+        return 
 
 
 class AggregatePowerGenerationSpider(scrapy.Spider):
@@ -114,12 +121,21 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
         self.sid = sid
         self.duration = duration
     
-    name = "aggregate_power_generation_spider"
+    if duration.lower() == "weekly":
+        name = "weekly_power_generation_spider"
+    elif duration.lower() == "monthly":
+        name = "monthly_power_generation_spider"
+    elif duration.lower() == "yearly":
+        name = "yearly_power_generation_spider"
+    else:
+        raise ValueError("Duration can only be weekly, monthly or yearly")
+    
     start_urls = [
         f"https://pvoutput.org/aggregate.jsp?id={self.id}&sid={self.sid}&t={self.duration}",
     ]
 
     def parse(self, response):
+        system_name = response.xpath("//b[@class='large']//text()").get()
         table = response.xpath("//table[@id='tb']//tr")
         for index, tr in enumerate(table):
             if index >= 2:
@@ -149,7 +165,8 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                     "FIT Credit", "Low", "High", "Average", "Comments"
                 ]
             )
-            return df
+            df_as_json = df.to_json()
+            return {"name": system_name, "df": df_as_json}
 
 
 class DailyPowerGenerationSpider(scrapy.Spider):
@@ -157,12 +174,14 @@ class DailyPowerGenerationSpider(scrapy.Spider):
         self.items = []
         self.id = id
         self.sid = sid
+    
     name = "daily_power_generation_spider"
     start_urls = [
         f"https://pvoutput.org/list.jsp?id={self.id}&sid={self.sid}",
     ]
 
     def parse(self, response):
+        system_name = response.xpath("//b[@class='large']//text()").get()
         table = response.xpath("//table[@id='tb']//tr")
         for index, tr in enumerate(table):
             if index >= 2:
@@ -193,7 +212,8 @@ class DailyPowerGenerationSpider(scrapy.Spider):
                     "Comments"
                 ]
             )
-            return df
+            df_as_json = df.to_json()
+            return {"name": system_name, "df": df_as_json}
 
 
 class SystemInfoSpider(scrapy.Spider):
@@ -214,34 +234,15 @@ class SystemInfoSpider(scrapy.Spider):
             "Number Of Panels": info[0],
             "Panel Max Power": info[1],
             "Size": info[2],
-            "Panel Brand/Model": info[3],
+            "Panel Brand": info[3],
             "Orientation": info[4],
             "Number Of Inverters": info[5],
             "Inverter Brand/Model": info[6],
             "Inverter Size": info[7],
-            "Inverter Model": info[8],
+            "Postcode": info[8],
             "Installation Date": info[9],
             "Shading": info[10],
             "Tilt": info[11],
             "Comments": info[12],
         }
         return system_info
-
-
-# Get system information, store the info and dfs with the system name, adding the system country
-
-def scrape_system_data(id, sid):
-    """
-    Scrapes all system data and saves it to the db
-
-    Parameters
-    ----------
-    id: str
-        unique system id
-    sid: str
-        unique system sid
-    """
-    system_location = SystemLocationSpider(id, sid).parse()
-    system_info = SystemInfoSpider(id, sid).parse()
-    daily_power_generation = DailyPowerGenerationSpider(id, sid).parse()
-    weekly_power_generation = AggregatePowerGenerationSpider(id, sid).parse()
