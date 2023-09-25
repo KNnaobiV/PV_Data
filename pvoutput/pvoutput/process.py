@@ -1,11 +1,12 @@
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-
-from .definitions import get_countries
+import sys
+sys.path.append(".")
+from definitions import get_countries
 
 from spiders.pvoutput_spiders import (
     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
-    CountrySpider, SystemInfoSpider, SystemLocationSpider
+    CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider
 )
 
 DURATIONS = ["month", "week", "year"]
@@ -22,7 +23,7 @@ def get_systems_in_country(country):
     countries = get_countries()
     country_id = countries[country]
     process = CrawlerProcess(get_project_settings())
-    process.crawl(CountrySpider, id=country_id, country=country)
+    process.crawl(CountrySystemsSpider, id=country_id, country=country)
     process.start()
 
 
@@ -65,3 +66,6 @@ def get_system_info(id, sid, durations):
                 )
             )
     process.start()
+
+
+get_systems_in_country("Switzerland")

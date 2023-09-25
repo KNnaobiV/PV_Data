@@ -2,7 +2,7 @@ import os
 
 SCRAPPER_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_countries():
-    country_text_file = os.path.join(SCRAPPER_ROOT_DIR, "static", "out.txt")
+    country_text_file = os.path.join(SCRAPPER_ROOT_DIR, "static", "countries.txt")
     with open(country_text_file, "r") as country_file:
         country_dict = {}
         lines = country_file.readlines()

@@ -6,7 +6,9 @@ from contextlib import suppress
 
 import scrapy
 import pandas as pd
-from ..definitions import SCRAPPER_ROOT_DIR
+import sys
+sys.path.append("..")
+from definitions import SCRAPPER_ROOT_DIR
 
 
 class GetCountries(scrapy.Spider):
@@ -51,9 +53,12 @@ class CountrySystemsSpider(scrapy.Spider):
         self.id = id
         self.country = country
 
-    start_urls = [
-        f"https://pvoutput.org/ladder.jsp?f=1&country={self.id}"
-    ]
+    def start_requests(self):
+        yield scrapy.Request(f"https://pvoutput.org/ladder.jsp?f=1&country={self.id}")
+
+    # start_urls = [
+    #     f"https://pvoutput.org/ladder.jsp?f=1&country={self.id}"
+    # ]
 
     def parse(self, response):
         system_ids = []
@@ -91,9 +96,12 @@ class SystemLocationSpider(scrapy.Spider):
         self.sid = sid
 
     name = "system_location_spider"
-    start_urls = [
-        f"https://pvoutput.org/listmap.jsp?sid={self.sid}"
-    ]
+
+    def start_requests(self):
+        yield scrapy.Request(f"https://pvoutput.org/listmap.jsp?sid={self.sid}")
+    # start_urls = [
+    #     f"https://pvoutput.org/listmap.jsp?sid={self.sid}"
+    # ]
     
     def parse(self, response):
         location = {}
@@ -110,29 +118,36 @@ class SystemLocationSpider(scrapy.Spider):
             location["name"] = system_name
             location["latitude"] = location_info.group(1)
             location["longitude"] = location_info.group(2)
+            latitude = location["latitude"]
+            longitude = location["longitude"]
         location = json.dumps(location)
-        return 
+        return {
+            "system_sid": self.sid, 
+            "latitude": latitude, 
+            "longitude": longitude,
+        }
 
 
 class AggregatePowerGenerationSpider(scrapy.Spider):
-    def __init__(self, id, sid, duration):
+    def __init__(self, id, sid, duration="monthly"):
         self.items = []
         self.id = id
         self.sid = sid
-        self.duration = duration
     
-    if duration.lower() == "weekly":
-        name = "weekly_power_generation_spider"
-    elif duration.lower() == "monthly":
-        name = "monthly_power_generation_spider"
-    elif duration.lower() == "yearly":
-        name = "yearly_power_generation_spider"
-    else:
-        raise ValueError("Duration can only be weekly, monthly or yearly")
+        if duration.lower() == "weekly":
+            self.name = "weekly_power_generation_spider"
+        elif duration.lower() == "monthly":
+            self.name = "monthly_power_generation_spider"
+        elif duration.lower() == "yearly":
+            self.name = "yearly_power_generation_spider"
+        else:
+            raise ValueError("Duration can only be weekly, monthly or yearly")
     
-    start_urls = [
-        f"https://pvoutput.org/aggregate.jsp?id={self.id}&sid={self.sid}&t={self.duration}",
-    ]
+    def start_requests(self):
+        yield scrapy.Request(f"https://pvoutput.org/aggregate.jsp?id={self.id}&sid={self.sid}&t={self.duration}")
+    # start_urls = [
+    #     f"https://pvoutput.org/aggregate.jsp?id={self.id}&sid={self.sid}&t={self.duration}",
+    # ]
 
     def parse(self, response):
         system_name = response.xpath("//b[@class='large']//text()").get()
@@ -166,7 +181,7 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                 ]
             )
             df_as_json = df.to_json()
-            return {"name": system_name, "df": df_as_json}
+            return {"system_sid": self.sid, f"{duration.lower()}_df": df_as_json}
 
 
 class DailyPowerGenerationSpider(scrapy.Spider):
@@ -176,9 +191,12 @@ class DailyPowerGenerationSpider(scrapy.Spider):
         self.sid = sid
     
     name = "daily_power_generation_spider"
-    start_urls = [
-        f"https://pvoutput.org/list.jsp?id={self.id}&sid={self.sid}",
-    ]
+    
+    def start_requests(self):
+        yield scrapy.Request(f"https://pvoutput.org/list.jsp?id={self.id}&sid={self.sid}")
+    # start_urls = [
+    #     f"https://pvoutput.org/list.jsp?id={self.id}&sid={self.sid}",
+    # ]
 
     def parse(self, response):
         system_name = response.xpath("//b[@class='large']//text()").get()
@@ -213,7 +231,7 @@ class DailyPowerGenerationSpider(scrapy.Spider):
                 ]
             )
             df_as_json = df.to_json()
-            return {"name": system_name, "df": df_as_json}
+            return {"system_sid": self.sid, "daily_df": df_as_json}
 
 
 class SystemInfoSpider(scrapy.Spider):
@@ -221,9 +239,12 @@ class SystemInfoSpider(scrapy.Spider):
         self.sid = sid
 
     name = "system_info_spider"
-    start_urls = [
-        f"https://pvoutput.org/display.jsp?sid={self.sid}"
-    ]
+
+    def start_requests(self):
+        yield scrapy.Request(f"https://pvoutput.org/display.jsp?sid={self.sid}")
+    # start_urls = [
+    #     f"https://pvoutput.org/display.jsp?sid={self.sid}"
+    # ]
 
     def parse(self, response):
         info_div = response.css("div.corner")
@@ -231,18 +252,19 @@ class SystemInfoSpider(scrapy.Spider):
         info = info_table.xpath("./td[2]/input/@value").extract()
         system_info = {
             "Name": info_div.css("b::text").extract(),
-            "Number Of Panels": info[0],
-            "Panel Max Power": info[1],
+            "NumberOfPanels": info[0],
+            "PanelMaxPower": info[1],
             "Size": info[2],
-            "Panel Brand": info[3],
+            "PanelBrand": info[3],
             "Orientation": info[4],
-            "Number Of Inverters": info[5],
-            "Inverter Brand/Model": info[6],
-            "Inverter Size": info[7],
+            "NumberOfInverters": info[5],
+            "InverterBrand": info[6],
+            "InverterSize": info[7],
             "Postcode": info[8],
-            "Installation Date": info[9],
+            "InstallationDate": info[9],
             "Shading": info[10],
             "Tilt": info[11],
             "Comments": info[12],
         }
-        return system_info
+        system_info = json.dump(system_info)
+        return {"system_sid": self.sid, "info":system_info}
