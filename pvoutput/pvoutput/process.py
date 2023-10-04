@@ -42,6 +42,7 @@ def get_systems_in_country(country):
 
 
 def get_systems_in_all_countries():
+    """Runner for crawling all the systems."""
     countries = get_countries()
     for country in countries.keys():
         country_id = countries[country]
