@@ -1,0 +1,26 @@
+{'Feuerwehr': {'sid': '34873', 'id': '38078'}}
+{'Oberwis': {'sid': '34833', 'id': '38078'}}
+{'PVA Schwimmbad Weiher Seuzach': {'sid': '66400', 'id': '38820'}}
+{'Penthalaz': {'sid': '31421', 'id': '34294'}}
+{'Feldstrasse 2 Cham': {'sid': '42956', 'id': '47115'}}
+{'SH Bühlmatt - Udligenswil': {'sid': '70069', 'id': '79025'}}
+{'Hutmattenweg': {'sid': '36035', 'id': '39450'}}
+{'kulmsolar Bezirksschulhaus': {'sid': '74142', 'id': '83657'}}
+{'Seuzach Kindergarten': {'sid': '52904', 'id': '59457'}}
+{'white_dove': {'sid': '29687', 'id': '32389'}}
+{'Seuzach Landstrasse': {'sid': '33517', 'id': '36574'}}
+{'TRA': {'sid': '62294', 'id': '70114'}}
+{'MyPVMar': {'sid': '20218', 'id': '22325'}}
+{'Villaz-St-Pierre': {'sid': '41754', 'id': '44202'}}
+{'Reduce2TheMax': {'sid': '77002', 'id': '86824'}}
+{'--': {'sid': '16873', 'id': '19023'}}
+{'YRR Home': {'sid': '54013', 'id': '60671'}}
+{'Penth2': {'sid': '48518', 'id': '34294'}}
+{'Aloaha Enecsys 2000003270': {'sid': '36334', 'id': '39776'}}
+{'Steinacher28': {'sid': '54415', 'id': '61126'}}
+{'Solar Consult': {'sid': '61528', 'id': '69245'}}
+{'Frattaroli-Seuzach': {'sid': '35508', 'id': '38820'}}
+{'DSE': {'sid': '67542', 'id': '76152'}}
+{'Cottens Brévires': {'sid': '61199', 'id': '68880'}}
+{'SE15K Winterthur': {'sid': '72464', 'id': '81747'}}
+{'StreckerPower': {'sid': '7327', 'id': '9001'}}
