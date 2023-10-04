@@ -13,72 +13,142 @@ from itemadapter import ItemAdapter
 from sqlalchemy.orm import relationship, sessionmaker
 import sys
 sys.path.append(".")
-from models import db_connect
+from models import db_connect, Country, System
+from items import *
 
+def create_instance_with_sid(model, **kwargs):
+    return model(**kwargs)
+
+
+def get_one_or_create(
+    session,
+    model,
+    create_method="",
+    create_method_kwargs=None,
+    **kwargs):
+    try:
+        return session.query(model).filter_by(**kwargs).one(), False
+    except NoResultFound:
+        kwargs.update(create_method_kwargs or {})
+        created = getattr(model, create_method, model)(**kwargs)
+        try:
+            session.add(created)
+            session.flush()
+            return created, True
+        except IntegrityError:
+            session.rollback()
+            return session.query(model).filter_by(**kwargs).one(), False
 
 class PostgresPipeline:
     def __init__(self):
         engine = db_connect()
         Session = sessionmaker(bind=engine)
         self.session = Session()
+    
+    
+    def add_country(self, country_item):
+        """
+        Parameters
+        ----------
+        country_item: item
+            Item containing information about countries.
+        """
+        country, created = get_one_or_create(
+            session, 
+            Country, 
+            sid=power_gen_info["sid"]
+        )
+        country.id = country_item["id"]
+        country.name = country_item["name"]
+        country.sid = country_item["sid"]
         
-    
-    def add_country(self, country):
-        """
-        country: item
-            country item
-        """
-        country = Country(
-            name=country["name"],
-            sid=country["sid"],
-            id=country["id"],
-        )
 
-    
-    def add_system(self, system):
+    def add_location_info(self, location_info):
         """
-        system: item
-            system item
+        Parameters
+        ----------
+        location_info: item
+            Item containing detailed information on the system.
         """
-        system = System(
-            name=system["name"],
-            sid=system["sid"],
-            id=system["id"],
-            country=system["country"],
+        system, created = get_one_or_create(
+            session, 
+            System, 
+            sid=power_gen_info["id"]
         )
+        system.country = location_info["country"]
+        system.latitude = location_info["latitude"]
+        system.longitude = location_info["longitude"]
+        system.name = location_info["name"]
+        system.sid = location_info["sid"]
+
         country = session.query(Country).filter_by(name=country.name)
         if country: #check if the country exists
             system.country = country
         else:
-            system.country = item.country # country from the item to be passed
-        
-        
-        self.session.add(system)
-        self.session.commit()
-        self.session.close()
+            system.country = item.country
 
-    def add_system_location(self, system_info):
+
+    def add_power_generaton_info(self, power_gen_info):
         """
-        system_location: item
-            system location
+        Parameters
+        ----------
+        power_gen_info: item
+            Item containing information on the system's power generation.
         """
-        system_location = SystemLocation(
-            name=system_location["name"],
-            latitude=system_location["latitude"],
-            longitude=system_location["longitude"],
-            system=system_location["system"],    
+        system, created = get_one_or_create(
+            session, 
+            System, 
+            sid=power_gen_info["id"]
         )
-        self.session.add(system_location)
-        self.session.commit()
-        self.session.close()
+        duration = power_gen_info["duration"]
+        system.id = power_gen_info["id"]
+        system.sid = power_gen_info["sid"]
+        info = power_gen_info["power_generated_info"]
+        setattr(system, duration, info)
+
+    def add_system_info(self, system_item):
+        """
+        Parameters
+        ----------
+        system_item: item
+            Item containing basic information on the system.
+        """
+        system, created = get_one_or_create(
+            session, 
+            System, 
+            sid=power_gen_info["id"]
+        )
+        system.info = system_item["info"]
+        system.sid = system_item["sid"]
+
 
     def process_item(self, item, spider):
-        if isinstance(item, Country):
+        if isinstance(item, CountryItem):
             self.add_country(item)
-        elif isinstance(item, System):
-            self.add_system(item)
-        elif isinstance(item, SystemLocation):
-            self.add_system_location(item)
+        elif isinstance(item, LocationItem):
+            self.add_location_info(item)
+        elif isinstance(item, PowerGeneratedItem):
+            self.add_power_generated_info(item)
+        elif isinstance(item, SystemInfoItem):
+            self.add_system_info(item)
+        try:
+            session.add(item)
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+        return item
+
+
+
+
+
+
+
+
+
 
     def insert_row(self, table, cols):
         """
