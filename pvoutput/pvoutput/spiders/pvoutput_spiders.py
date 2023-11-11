@@ -12,11 +12,13 @@ import sys
 cwd = os.getcwd()
 path = os.path.dirname(os.path.join(cwd, "pv_scrapper", "src", "pvoutput", "pvoutput", "spiders"))
 sys.path.append(path)
+
 from definitions import SCRAPPER_ROOT_DIR
 from items import *
+from pipelines import DataPipeline
 from utils import get_or_create_dir
 
-COUNTRIES_DIR = os.path.join(SCRAPPER_ROOT_DIR, "ouput", "countries")
+COUNTRIES_DIR = os.path.join(SCRAPPER_ROOT_DIR, "output", "countries")
 
 
 class GetCountries(scrapy.Spider):
@@ -37,20 +39,28 @@ class GetCountries(scrapy.Spider):
             os.remove(self.out_file)
     
     def parse(self, response):
-        # should I suppress or raise?
+        item = CountryItem()
         with suppress(IndexError):
             url = response.request.url
             country_id = re.search(r"country=(\d+)", url)
             if country_id:
                 country_id = country_id.group(1)
+                item["sid"] = country_id
 
             table_rows = response.css(".e2, .o2")
             country = table_rows[0].xpath("//td[4]//text()").get()
+            if not country:
+                country = f"country_{sid}"
+            if not country:
+                raise AttributeError
+            item["name"] = country
             with open(self.out_file, "a") as out_file:
                 out_file.write(f"{country.strip()}:{country_id}\n") 
             self.countries = {}
             self.countries[country.strip()] = country_id
-        yield self.countries       
+            pipeline = DataPipeline(item)
+            pipeline.process_item()
+        yield item  
 
 
 class CountrySystemsSpider(scrapy.Spider):
@@ -104,13 +114,13 @@ class CountrySystemsSpider(scrapy.Spider):
             country_item["name"] = country
             systems_file = os.path.join(self.country_dir, "systems.csv")
             df = pd.DataFrame(self.systems)
-            df.to_csv(systems_file)
+            # df.to_csv(systems_file)
             for system in self.systems:
-                for name, ids in system.items():
-                    system_item["country"] = country
-                    system_item["name"] = name
-                    system_item["id"] = ids["id"]
-                    system_item["sid"] = ids["sid"]
+                # for name, ids in system.items():
+                system_item["country"] = system["country"]
+                system_item["name"] = system["name"]
+                system_item["id"] = system["id"]
+                system_item["sid"] = system["sid"]
                 yield system_item
 
 
@@ -163,7 +173,7 @@ class SystemLocationSpider(scrapy.Spider):
         
         df = pd.DataFrame(location, index=[1])
         save_file = os.path.join(self.SYSTEM_DIR, "location.csv")
-        df.to_csv(save_file)
+        # df.to_csv(save_file)
        
         # location = json.dumps(location)
         # yield {
@@ -241,7 +251,7 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                 ]
             )
             save_file = os.path.join(self.SYSTEM_DIR, f"{self.duration}.csv")
-            df.to_csv(save_file)
+            # df.to_csv(save_file)
             df_as_json = df.to_json()
             item["sid"] = self.sid
             item["id"] = self.id
@@ -305,7 +315,7 @@ class DailyPowerGenerationSpider(scrapy.Spider):
                 ]
             )
             save_file = os.path.join(self.SYSTEM_DIR, "daily.csv")
-            df.to_csv(save_file)
+            # df.to_csv(save_file)
             df_as_json = df.to_json()
             item["sid"] = self.sid
             item["id"] = self.id
@@ -360,7 +370,7 @@ class SystemInfoSpider(scrapy.Spider):
         
         df = pd.DataFrame.from_dict(system_info)
         save_file = os.path.join(self.SYSTEM_DIR, "info.csv")
-        df.to_csv(save_file)
+        # df.to_csv(save_file)
         item["sid"] = self.sid
         item["info"] = system_info
         # system_info = json.dump(system_info)

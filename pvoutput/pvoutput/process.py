@@ -1,5 +1,7 @@
 import os
 import glob
+from operator import itemgetter
+
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
@@ -13,8 +15,17 @@ import pandas as pd
 
 from spiders.pvoutput_spiders import (
     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
-    CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider
+    CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider,
+    GetCountries
 )
+
+
+__all__ = [
+    "get_systems_in_country",
+    "get_systems_in_all_country",
+    "get_system_info"
+]
+
 
 COUNTRY_OUT_BASE = os.path.join(SCRAPPER_ROOT_DIR, "output", "countries")
 SYSTEM_FILES = os.path.join(COUNTRY_OUT_BASE, "**/systems.csv")
@@ -22,6 +33,12 @@ SYSTEM_FILES = [sys_file for sys_file in glob.glob(SYSTEM_FILES)]
 
 
 DURATIONS = ["weekly", "monthly", "yearly"]
+
+def get_countries():
+    process = CrawlerProcess(get_project_settings())
+    process.crawl(GetCountries)
+    process.start()
+
 
 def get_systems_in_country(country):
     """
@@ -33,16 +50,31 @@ def get_systems_in_country(country):
         name of the country
     """
     countries = get_countries()
-    country_id = countries[country]
+    try:
+        country_id = countries[country.title()]
+    except KeyError:
+        raise KeyError(
+            f"""
+            Country {country} does not exist. Please check that {country} exist.
+            """
+        )
     process = CrawlerProcess(get_project_settings())
     process.crawl(CountrySystemsSpider, id=country_id, country=country)
     process.start()
-    country_pipeline = PostgresPipeline()
-    #country_pipeline.add_country()
+    # country_pipeline = PostgresPipeline()
+    # country_pipeline.add_country()
 
 
 def get_systems_in_all_countries():
-    """Runner for crawling all the systems."""
+    """
+    Runner for crawling all the systems and saving their data to 
+    specified output folder as 'systems.csv' under the folder of the 
+    available countries.
+
+    Note
+    ----
+    The output folder is created in the specified root directory.    
+    """
     countries = get_countries()
     for country in countries.keys():
         country_id = countries[country]
@@ -50,11 +82,17 @@ def get_systems_in_all_countries():
         process.crawl(CountrySystemsSpider, id=country_id, country=country)
     process.start()
 
-get_systems_in_all_countries()
 
 def get_system_info():
     """
     Runs the crawler to get information on a system.
+    The system information is saved as a csv file under a folder with 
+    the system name in the system's country folder.
+
+    Note
+    ----
+    The csv files are saved as 'd.csv', 'w.csv', 'm.csv', 'y.csv'. These 
+    represent the daily, weekly, monthly and yearly data respectively.
 
     Parameters
     ----------
@@ -71,17 +109,28 @@ def get_system_info():
     for file in SYSTEM_FILES:
         df = pd.read_csv(file)
         df_list.append(df)
-    pd.concat(df_list)
+    df = pd.concat(df_list)
     systems = df.to_dict(orient="records")
     process = CrawlerProcess(get_project_settings())
     pipeline = PostgresPipeline()
 
     for system in systems:
-        name, id, sid = system["name"], system["id"], system["sid"]
+        country, name, id, sid = itemgetter(
+            "country", "name", "id", "sid")(system)
         durations = DURATIONS + ["daily"]
     # process.configure()
-        process.crawl(SystemInfoSpider, sid=sid, name=name)
-        process.crawl(SystemLocationSpider, sid=sid, id=id, name=name)
+        process.crawl(
+            SystemInfoSpider, 
+            sid=sid, 
+            country_name=str(country), 
+            system_name=name
+        )
+        process.crawl(
+            SystemLocationSpider, 
+            sid=sid, 
+            id=id, 
+            country_name=str(country),
+        )
         duration_dict = {
             "weekly": "w",
             "monthly": "m",
@@ -89,12 +138,21 @@ def get_system_info():
         }
         for duration in durations:
             if duration.lower() == "daily":
-                process.crawl(DailyPowerGenerationSpider, id=id, sid=sid, name=name)
+                process.crawl(
+                    DailyPowerGenerationSpider, 
+                    id=id, 
+                    sid=sid,
+                    country_name=str(country), 
+                    system_name=name
+                )
             elif duration in DURATIONS:
-                # duration_val = duration_dict[duration]
                 process.crawl(
                     AggregatePowerGenerationSpider,
-                        id=id, sid=sid, duration=duration, name=name#duration_val
+                    id=id, 
+                    sid=sid, 
+                    country_name=str(country),
+                    system_name=name,
+                    duration=duration,
                 )
             else:
                 raise ValueError(
@@ -123,5 +181,6 @@ def get_infos(file):
     process.start()
 
 
-# get_system_info(file)
-# get_infos(file)
+# get_system_info()
+# get_systems_in_country("switzerland")
+get_countries()

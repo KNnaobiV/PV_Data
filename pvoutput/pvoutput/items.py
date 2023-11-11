@@ -11,15 +11,23 @@ __all__ = [
     "LocationItem",
     "SystemItem",
     "SystemInfoItem",
-    "PowerGeneratedItem"
+    "DailyItem",
+    "MonthlyItem",
+    "WeeklyItem",
+    "YearlyItem"
 ]
 
 
 class CountryItem(Item):
     sid = Field()
     name = Field()
-    system_ids = Field()
+    # system_ids = Field()
 
+class SystemItem(Item):
+    country = Field()
+    name = Field()
+    id = Field()
+    sid = Field()
 
 class LocationItem(Item):
     sid = Field()
@@ -34,14 +42,44 @@ class SystemInfoItem(Item):
     info = Field()
 
 
-class SystemItem(Item):
-    name = Field()
-    id = Field()
-    sid = Field()
+class DailyItem(Item):
+    date = Field()
+    generated = Field()
+    efficiency = Field()
+    exported = Field()
+    peak_power = Field()
+    peak_time = Field()
+    conditions = Field()
 
 
-class PowerGeneratedItem(Item):
-    sid = Field()
-    id =  Field()
-    duration = Field()
-    power_generated_info = Field()
+class MonthlyItem(Item):
+    period = Field()
+    generated = Field()
+    efficiency = Field()
+    exported = Field()
+    fit_credit = Field()
+    low = Field()
+    high = Field()
+    average = Field()
+
+
+class WeeklyItem(Item):
+    period = Field()
+    generated = Field()
+    efficiency = Field()
+    exported = Field()
+    fit_credit = Field()
+    low = Field()
+    high = Field()
+    average = Field()
+
+
+class YearlyItem(Item):
+    period = Field()
+    generated = Field()
+    efficiency = Field()
+    exported = Field()
+    fit_credit = Field()
+    low = Field()
+    high = Field()
+    average = Field()

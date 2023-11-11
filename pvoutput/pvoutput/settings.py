@@ -7,6 +7,9 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+import configparser
+import os
+
 BOT_NAME = "pvoutput"
 
 SPIDER_MODULES = ["pvoutput.spiders"]
@@ -63,9 +66,10 @@ TELNETCONSOLE_PORT = None
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "pvoutput.pipelines.PvoutputPipeline": 300,
-#}
+ITEM_PIPELINES = {
+   "pvoutput.pipelines.PostgresPipeline": 500,
+   "pvoutput.pipelines.PvoutputPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -94,6 +98,12 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
 
-ITEM_PIPELINES = {
-    "pvoutput.pipelines.PostgresPipeline": 300,
-}
+path = os.path.dirname(os.path.abspath(__file__))
+cfg =  configparser.ConfigParser()
+cfg.read(os.path.join(path, "config.cfg"))
+username = cfg.get("DB", "user", fallback=None)
+password = cfg.get("DB", "pwd", fallback=None)
+dbname = cfg.get("DB", "dbname", fallback=None)
+
+
+DATABASE_URL = f"postgresql://{username}:{password}@localhost/{dbname}"

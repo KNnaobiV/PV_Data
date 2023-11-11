@@ -5,20 +5,44 @@
 
 
 # useful for handling different item types with a single interface
-import configparser
 import logging
 
-
 from itemadapter import ItemAdapter
-from sqlalchemy.orm import relationship, sessionmaker
+
+from scrapy.utils.project import get_project_settings
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import relationship, Session
+from sqlalchemy.exc import NoResultFound, IntegrityError
 import sys
 sys.path.append(".")
-from models import db_connect, Country, System
+from models import *
 from items import *
+from settings import DATABASE_URL
+
+__all__ = [
+    "DataPipeline",
+]
+
+
+
+def db_connect(db_url):
+    """
+    Perform database connection using db settins from settings.py.
+
+    Returns
+    -------
+    engine: sqlalchemy engine instance
+    """
+    engine = create_engine(db_url)
+    return engine
+
 
 def create_instance_with_sid(model, **kwargs):
+    sid =   kwargs.get("sid")
+    if not sid:
+        raise KeyError("sid not in kwargs.")
     return model(**kwargs)
-
 
 def get_one_or_create(
     session,
@@ -30,6 +54,7 @@ def get_one_or_create(
         return session.query(model).filter_by(**kwargs).one(), False
     except NoResultFound:
         kwargs.update(create_method_kwargs or {})
+        # created = create_instance_with_sid(model, **kwargs)
         created = getattr(model, create_method, model)(**kwargs)
         try:
             session.add(created)
@@ -40,12 +65,25 @@ def get_one_or_create(
             return session.query(model).filter_by(**kwargs).one(), False
 
 class PostgresPipeline:
-    def __init__(self):
-        engine = db_connect()
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
+    def __init__(self, db_url):
+        self.DB_URL = DATABASE_URL
+        engine = db_connect(self.DB_URL)
+        self.session = sessionmaker(bind=engine)
+        create_tables(engine)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(db_url=crawler.settings.get("DATABASE_URL"))
     
+    def open_spider(self, spider):
+        engine = db_connect(self.DB_URL)
+        self.session = sessionmake(bind=engine)
     
+    def close_spider(self, spider):
+        self.session.close()
+
+    
+
     def add_country(self, country_item):
         """
         Parameters
@@ -106,6 +144,7 @@ class PostgresPipeline:
         info = power_gen_info["power_generated_info"]
         setattr(system, duration, info)
 
+
     def add_system_info(self, system_item):
         """
         Parameters
@@ -120,35 +159,6 @@ class PostgresPipeline:
         )
         system.info = system_item["info"]
         system.sid = system_item["sid"]
-
-
-    def process_item(self, item, spider):
-        if isinstance(item, CountryItem):
-            self.add_country(item)
-        elif isinstance(item, LocationItem):
-            self.add_location_info(item)
-        elif isinstance(item, PowerGeneratedItem):
-            self.add_power_generated_info(item)
-        elif isinstance(item, SystemInfoItem):
-            self.add_system_info(item)
-        try:
-            session.add(item)
-            session.commit()
-        except:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-        return item
-
-
-
-
-
-
-
-
-
 
     def insert_row(self, table, cols):
         """
@@ -223,6 +233,119 @@ class PostgresPipeline:
             print(e)
         cursor.close()
         self.connection.close()
+
+    def process_item(self, item, spider):
+        session = self.session()
+        if isinstance(item, CountryItem):
+            model = Country
+            # self.add_country(item)
+        elif isinstance(item, LocationItem):
+            model = System
+            # self.add_location_info(item)
+        elif isinstance(item, PowerGeneratedItem):
+            model = System
+            # self.add_power_generated_info(item)
+        elif isinstance(item, SystemInfoItem):
+            model = System
+            # self.add_system_info(item)
+        sid = item["sid"]
+        try:
+            item, created = get_one_or_create(self.session, model, sid=sid)
+            for attr, val in item.items():
+                setattr(item, attr, val)
+            session.add(item)
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+        return item
+
+
+class DataPipeline:
+    def __init__(self, item):
+        self.DB_URL = DATABASE_URL
+        engine = db_connect(self.DB_URL)
+        self.session = Session(bind=engine)
+        create_tables(engine)
+        models   = {
+            "CountryItem": Country,
+            "SystemItem": System,
+            "LocationItem": Location,
+            "SystemInfoItem": SystemInfo,
+            "DailyItem": Daily,
+            "WeeklyItem": Weekly,
+            "MonthlyItem": Monthly,
+            "YearlyItem": Yearly
+        }
+        items = (
+            CountryItem,  
+            SystemItem, 
+            LocationItem, 
+            DailyItem, 
+            MonthlyItem, 
+            WeeklyItem, 
+            YearlyItem
+        )
+        if isinstance(item, items):
+            self.model = models[item.__class__.__name__]
+
+        self.item = item
+
+    def create_item_with_sid(self, **kwargs):
+        sid = kwargs.get("sid")
+        if not sid:
+            raise KeyError("'sid' not in kwargs.")
+        return self.model(**kwargs)
+
+    """def get_or_create_item(self, create_method="", create_method_kwargs=None, **kwargs):
+        # try:
+        #return self.session.query(self.model).filter_by(**kwargs).one(), False
+        #except NoResultFound:
+        kwargs.update(create_method_kwargs or {})
+        created = getattr(self.model, create_method, self.model)(**kwargs)
+        try:
+            self.session.add(created)
+            self.session.flush()
+            return created, True
+        except IntegrityError:
+            self.session.rollback()
+            return self.session.query(self.model).filter_by(**kwargs).one(), False
+    """
+
+    def get_or_create_item(self, defaults=None, **kwargs):
+        instance = self.session.query(self.model).filter_by(**kwargs).one_or_none()
+        if instance:
+            return instance, False
+        else:
+            kwargs |= defaults or {}
+            instance = self.model(**kwargs)
+            try:
+                self.session.add(instance)
+                self.session.commit()
+            except Exception:
+                self.session.rollback()
+                instance = self.session.query(self.model).filter_by(**kwargs).one()
+                return instance, False
+            else:
+                return instance, True
+
+    def process_item(self):
+        sid = self.item["sid"]
+        try:
+        
+            model_item, _ = self.get_or_create_item(**self.item)
+            for attr, val in self.item.items():
+                setattr(model_item, attr, val)
+            self.session.add(model_item)
+            self.session.commit()
+        except:
+            self.session.rollback()
+            raise
+        finally:
+            self.session.close()
+        return self.item
 
 
 class BaseSystemPipeline(PostgresPipeline):
