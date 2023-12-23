@@ -2,13 +2,15 @@ import os
 import glob
 from operator import itemgetter
 
-from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
+from twisted.internet import reactor
 
 from definitions import get_countries, SCRAPPER_ROOT_DIR
 from models import Country
+from items import CountryItem
 from pipelines import DataPipeline
-from vernay import query as q
+from vernay.utils import query as q
 from vernay.utils import load_session
 
 import pandas as pd
@@ -23,7 +25,7 @@ from spiders.pvoutput_spiders import (
 __all__ = [
     "get_systems_in_country",
     "get_systems_in_all_country",
-    "get_system_info"
+    "get_system_info",
 ]
 
 
@@ -35,9 +37,11 @@ SYSTEM_FILES = [sys_file for sys_file in glob.glob(SYSTEM_FILES)]
 DURATIONS = ["weekly", "monthly", "yearly"]
 
 def get_countries():
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(GetCountries)
-    process.start()
+    session = load_session()
+    pipeline = DataPipeline(session)
+    runner = CrawlerProcess(get_project_settings())
+    runner.crawl(GetCountries, pipeline=pipeline)
+    runner.start()
 
 
 def get_systems_in_country(country):
@@ -173,5 +177,5 @@ def get_infos(file):
 
 
 # get_system_info()
-get_systems_in_country(" Switzerland")
-# get_countries()
+# get_systems_in_country(" Switzerland")
+get_countries()

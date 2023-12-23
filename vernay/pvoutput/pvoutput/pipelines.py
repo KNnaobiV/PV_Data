@@ -13,17 +13,16 @@ import sys
 sys.path.append(".")
 from models import *
 from items import *
-from settings import DATABASE_URL
+from vernay.utils import get_engine, load_session, save_item
 
 __all__ = [
     "DataPipeline",
 ]
 
 class DataPipeline:
-    def __init__(self, item):
-        self.DB_URL = DATABASE_URL
-        engine = db_connect(self.DB_URL)
-        self.session = Session(bind=engine)
+    def __init__(self, session):
+        engine = get_engine()
+        self.session = session
         create_tables(engine)
         models   = {
             "CountryItem": Country,
@@ -36,36 +35,20 @@ class DataPipeline:
             "YearlyItem": Yearly
         }
         items = (
-            CountryItem,  
+            CountryItem, 
             SystemItem, 
             LocationItem, 
+            SystemInfoItem, 
             DailyItem, 
-            MonthlyItem, 
             WeeklyItem, 
+            MonthlyItem, 
             YearlyItem
         )
         if isinstance(item, items):
             self.model = models[item.__class__.__name__]
 
-        self.item = item
 
     def create_item_with_sid(self, **kwargs):
-        """
-        Creates model instance using the kwargs provided.
-
-        Parameters
-        ----------
-        kwargs: dict
-            keyword arguments representing field names and values.
-
-        Returns
-        -------
-        model instance
-
-        Raises
-        ------
-        KeyError: If sid is not in kwargs.
-        """
         sid = kwargs.get("sid")
         if not sid:
             raise KeyError("'sid' not in kwargs.")
@@ -73,23 +56,6 @@ class DataPipeline:
 
 
     def get_or_create_item(self, defaults=None, **kwargs):
-        """
-        Retrieves an item from the db by filtering the using the kwargs.
-        Creates a new item if the item does not exist.
-
-        Parameters
-        ----------
-        defaults: dict, optional
-            default values for creating new instances
-        kwargs: dict
-            filter conditions for querying the db.
-        
-        Returns
-        -------
-        tuple:
-            model instance and boolean. True if a new instance was created
-            and False if it was retrieved from the db.
-        """
         instance = self.session.query(self.model).filter_by(**kwargs).one_or_none()
         if instance:
             return instance, False
@@ -108,9 +74,6 @@ class DataPipeline:
     
 
     def save_item(self):
-        """
-        Saves the session item to the db.
-        """
         model_item, _ = self.get_or_create_item(**self.item)
         for attr, val in self.item.items():
             setattr(model_item, attr, val)
@@ -118,19 +81,20 @@ class DataPipeline:
         self.session.commit()
 
 
-    def process_item(self):
+    def process_item(self, item, spider):
+        model = self.models[item.__class__.__name__]
         try:
-            item_id = self.item["sid"]
+            item_id = item["sid"]
         except KeyError:
-            item_id = self.item["id"]
+            item_id = item["id"]
         except KeyError:
             raise
         try:
-            self.save_item()
+            save_item(self.session, item)
         except:
             self.session.rollback()
             raise
         finally:
             self.session.close()
-        return self.item
+        return item
         

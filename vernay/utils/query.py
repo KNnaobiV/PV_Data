@@ -1,3 +1,14 @@
+__all__= [
+    "filter_table", 
+    "get_db_url", 
+    "get_id_from_name",
+    "get_item_by_id",
+    "get_objects_by_filter", 
+    "get_operator_filter_list",
+    "get_objects_by_operator_filter",
+    "load_table"
+]
+
 import configparser
 import operator
 import os
@@ -9,10 +20,7 @@ from sqlalchemy.exc import NoResultFound
 from vernay.pvoutput.pvoutput.settings import DATABASE_URL
 
 # write query for retrieving item from db
-__all__= [
-    "filter_table", "get_objects_by_filter", "get_operator_filter_list",
-    "get_objects_by_operator_filter",
-]
+
 
 def get_db_url():
     cfg =  configparser.ConfigParser()
@@ -22,6 +30,7 @@ def get_db_url():
     dbname = cfg.get("DB", "dbname", fallback=None)
     db_url = f"postgresql://{username}:{password}@localhost/{dbname}"
     return db_url
+
 
 def load_table(table_name):
     """
@@ -138,6 +147,7 @@ def get_item_by_id(session, model, id):
     """
     return session.query(model).get(id)
 
+
 def get_id_from_name(session, model, name):
     query_filter = {"name": name}
     query_object = get_objects_by_filter(session, model, **query_filter)
@@ -148,6 +158,7 @@ def get_id_from_name(session, model, name):
         return query_object.sid
     elif query_object.id:
         return query_object.id
+
 
 def get_class_by_tablename(fullname):
     """

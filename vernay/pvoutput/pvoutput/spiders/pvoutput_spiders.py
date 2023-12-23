@@ -4,10 +4,10 @@ import os
 import re
 import shutil
 from contextlib import suppress
-from pprint import pprint
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
+from scrapy.loader import ItemLoader
 import pandas as pd
 import sys
 cwd = os.getcwd()
@@ -23,36 +23,33 @@ from vernay.utils import get_or_create_dir
 
 class GetCountries(scrapy.Spider):
     """
-    Gets all countries and corresponding ids and appends them to 
-    "static/countries.txt".
+    Crawls all countries and gets their name and sid
     """
-    name = "get_countries"
+    name = "get_countries_spider"
     start_urls = [
         f"https://pvoutput.org/ladder.jsp?f=1&country={i}" for i in range(257)
     ]
 
-
     def parse(self, response):
+        # loader = ItemLoader(item=CountryItem(), response=response)
         item = CountryItem()
         with suppress(IndexError):
             url = response.request.url
             country_id = re.search(r"country=(\d+)", url)
             if country_id:
                 country_id = country_id.group(1)
-                item["sid"] = country_id
+                # loader.add_value("sid", country_id)
+            
 
             table_rows = response.css(".e2, .o2")
             country = table_rows[0].xpath("//td[4]//text()").get()
             if not country:
                 country = f"country_{sid}"
             item["name"] = country
-            # with open(self.out_file, "a") as out_file:
-            #     out_file.write(f"{country.strip()}:{country_id}\n") 
-            self.countries = {}
-            self.countries[country.strip()] = country_id
-            # pipeline = DataPipeline(item)
-            # pipeline.process_item()
-        yield item  
+            item["sid"] = country_id
+        item.process_item()
+            # loader.add_value("name", country)
+        # yield loader.load_item()
 
 
 class CountrySystemsSpider(scrapy.Spider):

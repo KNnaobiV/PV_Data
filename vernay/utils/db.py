@@ -1,3 +1,10 @@
+__all__= [
+    "get_db_url",
+    "get_engine", 
+    "load_session", 
+    "load_table"
+]
+
 import configparser
 import operator
 import os
@@ -11,9 +18,7 @@ from vernay.definitions import  ROOT_DIR
 from vernay.pvoutput.pvoutput.settings import DATABASE_URL
 
 # write query for retrieving item from db
-__all__= [
-    "get_or_create_dir", "get_engine", "load_session", "load_table",
-]
+
 
 def get_db_url():
     cfg =  configparser.ConfigParser()

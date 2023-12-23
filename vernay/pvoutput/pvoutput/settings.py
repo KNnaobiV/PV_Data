@@ -12,7 +12,7 @@ import os
 
 BOT_NAME = "pvoutput"
 
-SPIDER_MODULES = ["pvoutput.spiders"]
+SPIDER_MODULES = ["pvoutput.spiders", "pvoutput.spiders.pvoutput_spiders"]
 NEWSPIDER_MODULE = "pvoutput.spiders"
 
 
@@ -67,8 +67,7 @@ TELNETCONSOLE_PORT = None
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "pvoutput.pipelines.DataPipelines": 500,
-   "pvoutput.pipelines.PvoutputPipeline": 300,
+   "pvoutput.pipelines.DataPipeline": 500,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

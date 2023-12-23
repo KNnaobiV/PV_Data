@@ -4,7 +4,7 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 from scrapy.item import Item, Field
-from scrapy.loader.processors import MapCompose, TakeFirst
+from scrapy.loader.processors import MapCompose, TakeFirst # deprecated fix
 
 __all__ = [
     "CountryItem",
@@ -17,16 +17,18 @@ __all__ = [
     "YearlyItem"
 ]
 
+def strip_whitespace(value):
+    if isinstance(value, str):
+        return value.strip()
 
 class CountryItem(Item):
     sid = Field()
-    name = Field()
-    # system_ids = Field()
+    name = Field(input_processor=strip_whitespace)
 
 
 class SystemItem(Item):
     country = Field()
-    name = Field()
+    name = Field(input_processor=strip_whitespace)
     id = Field()
     sid = Field()
 
@@ -36,7 +38,7 @@ class LocationItem(Item):
     country = Field()
     latitude = Field()
     longitude = Field()
-    name = Field()
+    name = Field(input_processor=strip_whitespace)
 
 
 class SystemInfoItem(Item):
@@ -51,7 +53,7 @@ class DailyItem(Item):
     exported = Field()
     peak_power = Field()
     peak_time = Field()
-    conditions = Field()
+    conditions = Field(input_processor=strip_whitespace)
 
 
 class MonthlyItem(Item):
