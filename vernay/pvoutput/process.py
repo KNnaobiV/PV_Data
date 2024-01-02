@@ -7,15 +7,15 @@ from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
 
 # from definitions import get_countries, SCRAPPER_ROOT_DIR
-from models import Country, System
-from items import CountryItem
-from pipelines import DataPipeline
+from pvoutput.models import Country, System
+from pvoutput.items import CountryItem
+from pvoutput.pipelines import DataPipeline
 from vernay.utils import query as q
 from vernay.utils import load_session
 
 import pandas as pd
 
-from spiders.pvoutput_spiders import (
+from pvoutput.spiders.pvoutput_spiders import (
     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
     CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider,
     GetCountries
@@ -107,46 +107,18 @@ def get_system_info():
 
     try:
         session = load_session()
-        systems = session.query(System).all()[:3]
-        for sys in systems:
-            sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
-            country = session.query(Country).filter_by(sid=sys.country_sid).first()
-            country_name = country.name
-
-            # process.crawl(
-            #     SystemInfoSpider, 
-            #     sid=sys_sid, 
-            #     country_name=str(country_name), 
-            #     system_name=sys_name
-            # )
-            process = CrawlerProcess(get_project_settings())
-            process.crawl(
-                SystemLocationSpider,
-                session=session,
-                sid=sys_sid, 
-                id=sys_id, 
-                country_name=str(country_name),
-            )
-
-            process.crawl(
-                DailyPowerGenerationSpider, 
-                session=session,
-                sid=sys_sid, 
-                id=sys_id, 
-                country_name=str(country_name),
-                system_name=sys_name
-            )
-            durations = ["weekly", "monthly", "yearly"]
-            for duration in durations:
-                process.crawl(
-                    AggregatePowerGenerationSpider,
-                    session=session,
-                    sid=sys_sid, 
-                    id=sys_id, 
-                    country_name=str(country_name),
-                    system_name=sys_name,
-                    duration=duration,
-                )
+        sys = session.query(System).all()[0]
+        sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
+        country = session.query(Country).filter_by(sid=sys.country_sid).first()
+        country_name = country.name
+        process = CrawlerProcess(get_project_settings())
+        process.crawl(
+            SystemLocationSpider,
+            session=session,
+            sid=sys_sid, 
+            id=sys_id, 
+            country_name=str(country_name),
+        )
         process.start(stop_after_crawl=False)
     finally:
         session.close()
@@ -175,4 +147,5 @@ def get_infos(file):
 # get_systems_in_country(" Switzerland")
 # get_countries()
 # get_systems_in_all_countries()
+some = get_project_settings()
 get_system_info()

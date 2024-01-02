@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 class DataPipeline:
-    def __init__(self, session):
+    def __init__(self, item, session):
         engine = get_engine()
         self.session = session
         create_tables(engine)
@@ -47,6 +47,8 @@ class DataPipeline:
         if isinstance(item, items):
             self.model = models[item.__class__.__name__]
 
+        self.item = item
+
 
     def create_item_with_sid(self, **kwargs):
         sid = kwargs.get("sid")
@@ -54,9 +56,13 @@ class DataPipeline:
             raise KeyError("'sid' not in kwargs.")
         return self.model(**kwargs)
 
-
+    def filter_by_sid(self, sid):
+        return self.session.query(self.model).filter_by(sid=sid).one_or_none()
+        
     def get_or_create_item(self, defaults=None, **kwargs):
-        instance = self.session.query(self.model).filter_by(**kwargs).one_or_none()
+        sid = kwargs.get("sid")
+        instance = self.filter_by_sid(sid)
+        # instance = self.session.query(self.model).filter_by(**kwargs).one_or_none()
         if instance:
             return instance, False
         else:
@@ -67,11 +73,20 @@ class DataPipeline:
                 self.session.commit()
             except Exception:
                 self.session.rollback()
-                instance = self.session.query(self.model).filter_by(**kwargs).one()
+                # instance = self.session.query(self.model).filter_by(**kwargs).one()
                 return instance, False
             else:
                 return instance, True
     
+    def update_item(self, **kwargs):
+        sid = kwargs.get("sid")
+        instance = self.filter_by_sid(sid)
+        try:
+            # update instance logic
+            self.session.add(instance)
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
 
     def save_item(self):
         model_item, _ = self.get_or_create_item(**self.item)
@@ -81,20 +96,11 @@ class DataPipeline:
         self.session.commit()
 
 
-    def process_item(self, item, spider):
-        model = self.models[item.__class__.__name__]
+    def process_item(self):
         try:
-            item_id = item["sid"]
-        except KeyError:
-            item_id = item["id"]
-        except KeyError:
-            raise
-        try:
-            save_item(self.session, item)
+            self.save_item()
         except:
             self.session.rollback()
             raise
-        finally:
-            self.session.close()
-        return item
+        return self.item
         

@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import logging
 import os
 from typing import List, Optional
@@ -89,12 +90,12 @@ class Daily(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="daily")
-    date = None
-    generated: Mapped[int] = mapped_column()
-    efficiency: Mapped[int] = mapped_column()
-    exported: Mapped[int] = mapped_column()
-    peak_power: Mapped[int] = mapped_column()
-    peak_time: Mapped[int] = mapped_column()
+    date: Mapped[datetime.date] = mapped_column()
+    generated: Mapped[str] = mapped_column()
+    efficiency: Mapped[str] = mapped_column()
+    exported: Mapped[str] = mapped_column()
+    peak_power: Mapped[str] = mapped_column()
+    peak_time: Mapped[datetime.time] = mapped_column()
     conditions: Mapped[str] = mapped_column()
 
 
@@ -103,14 +104,15 @@ class Weekly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="weekly")
-    period: Mapped[str] = mapped_column()
-    generated: Mapped[int] = mapped_column()
-    efficiency: Mapped[int] = mapped_column()
-    exported: Mapped[int] = mapped_column()
+    year: Mapped[datetime.date.year] = mapped_column()
+    week: Mapped[datetime.date.isocalendar.week] = mapped_column()
+    generated: Mapped[str] = mapped_column()
+    efficiency: Mapped[str] = mapped_column()
+    exported: Mapped[str] = mapped_column()
     fit_credit: Mapped[str] = mapped_column()
-    low: Mapped[int] = mapped_column()
-    high: Mapped[int] = mapped_column()
-    average: Mapped[int] = mapped_column()
+    low: Mapped[str] = mapped_column()
+    high: Mapped[str] = mapped_column()
+    average: Mapped[str] = mapped_column()
 
 
 class Monthly(Base):
@@ -118,14 +120,15 @@ class Monthly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="monthly")
-    month: Mapped[str] = mapped_column()
-    generated: Mapped[int] = mapped_column()
-    efficiency: Mapped[int] = mapped_column()
-    exported: Mapped[int] = mapped_column()
+    year: Mapped[datetime.date.year] = mapped_column()
+    month: Mapped[datetime.date.month] = mapped_column()
+    generated: Mapped[str] = mapped_column()
+    efficiency: Mapped[str] = mapped_column()
+    exported: Mapped[str] = mapped_column()
     fit_credit: Mapped[str] = mapped_column()
-    low: Mapped[int] = mapped_column()
-    high: Mapped[int] = mapped_column()
-    average: Mapped[int] = mapped_column()
+    low: Mapped[str] = mapped_column()
+    high: Mapped[str] = mapped_column()
+    average: Mapped[str] = mapped_column()
 
 
 class Yearly(Base):
@@ -133,11 +136,11 @@ class Yearly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="yearly")
-    year: Mapped[str] = mapped_column()
-    generated: Mapped[int] = mapped_column()
-    efficiency: Mapped[int] = mapped_column()
-    exported: Mapped[int] = mapped_column()
+    year: Mapped[datetime.date.year] = mapped_column()
+    generated: Mapped[str] = mapped_column()
+    efficiency: Mapped[str] = mapped_column()
+    exported: Mapped[str] = mapped_column()
     fit_credit: Mapped[str] = mapped_column()
-    low: Mapped[int] = mapped_column()
-    high: Mapped[int] = mapped_column()
-    average: Mapped[int] = mapped_column()
+    low: Mapped[str] = mapped_column()
+    high: Mapped[str] = mapped_column()
+    average: Mapped[str] = mapped_column()

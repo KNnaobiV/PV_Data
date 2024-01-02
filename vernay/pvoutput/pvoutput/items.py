@@ -27,18 +27,16 @@ class CountryItem(Item):
 
 
 class SystemItem(Item):
-    country = Field()
+    country_sid = Field()
     name = Field(input_processor=strip_whitespace)
     id = Field()
     sid = Field()
 
 
 class LocationItem(Item):
-    sid = Field()
-    country = Field()
+    system_sid = Field()
     latitude = Field()
     longitude = Field()
-    name = Field(input_processor=strip_whitespace)
 
 
 class SystemInfoItem(Item):
@@ -47,6 +45,7 @@ class SystemInfoItem(Item):
 
 
 class DailyItem(Item):
+    system_sid = Field()
     date = Field()
     generated = Field()
     efficiency = Field()
@@ -57,7 +56,9 @@ class DailyItem(Item):
 
 
 class MonthlyItem(Item):
-    period = Field()
+    system_sid = Field()
+    year = Field()
+    month = Field()
     generated = Field()
     efficiency = Field()
     exported = Field()
@@ -68,7 +69,9 @@ class MonthlyItem(Item):
 
 
 class WeeklyItem(Item):
-    period = Field()
+    system_sid = Field()
+    year = Field()
+    week = Field()
     generated = Field()
     efficiency = Field()
     exported = Field()
@@ -79,7 +82,8 @@ class WeeklyItem(Item):
 
 
 class YearlyItem(Item):
-    period = Field()
+    system_sid = Field()
+    year = Field()
     generated = Field()
     efficiency = Field()
     exported = Field()
