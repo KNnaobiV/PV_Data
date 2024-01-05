@@ -16,10 +16,8 @@ __all__ = [
     "create_tables",
     "Country",
     "Daily",
-    "Location",
     "Monthly",
     "System",
-    "SystemInfo",
     "Weekly",
     "Yearly"
 ]
@@ -43,33 +41,9 @@ class System(Base):
 
     sid: Mapped[int] = mapped_column(primary_key=True)
     id: Mapped[int] = mapped_column()
-    info: Mapped[Optional["SystemInfo"]] = relationship(uselist=False, back_populates='system')
     name: Mapped[str] = mapped_column()
-    daily: Mapped[Optional["Daily"]] = relationship(uselist=False, back_populates='system')
-    weekly: Mapped[Optional["Weekly"]] = relationship(uselist=False, back_populates='system')
-    monthly: Mapped[Optional["Monthly"]] = relationship(uselist=False, back_populates='system')
-    yearly: Mapped[Optional["Yearly"]] = relationship(uselist=False, back_populates='system')
-    country_sid: Mapped[Optional[int]] = mapped_column(ForeignKey("country.sid"))
-    country: Mapped[Optional["Country"]] = relationship(back_populates="systems")
-    location: Mapped[Optional["Location"]] = relationship(back_populates='system')
-
-
-class Location(Base):
-    __tablename__ = "location"
-
-    # id: Mapped[int] = mapped_column(primary_key=True)
     latitude: Mapped[float] = mapped_column()
     longitude: Mapped[float] = mapped_column()
-    system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
-    system: Mapped[Optional["System"]] = relationship(back_populates="location")
-
-
-class SystemInfo(Base):
-    __tablename__ = "info"
-
-    system_sid: Mapped[Optional[int]] = mapped_column(ForeignKey("system.sid"), primary_key=True)
-    system: Mapped[Optional["System"]] = relationship(back_populates="info")
-    name: Mapped[str] = mapped_column()
     number_of_panels: Mapped[int] = mapped_column()
     panel_max_power: Mapped[float] = mapped_column()
     size: Mapped[float] = mapped_column()
@@ -83,6 +57,12 @@ class SystemInfo(Base):
     shading: Mapped[str] = mapped_column()
     tilt: Mapped[str] = mapped_column()
     comments: Mapped[str] = mapped_column()
+    daily: Mapped[Optional["Daily"]] = relationship(uselist=False, back_populates='system')
+    weekly: Mapped[Optional["Weekly"]] = relationship(uselist=False, back_populates='system')
+    monthly: Mapped[Optional["Monthly"]] = relationship(uselist=False, back_populates='system')
+    yearly: Mapped[Optional["Yearly"]] = relationship(uselist=False, back_populates='system')
+    country_sid: Mapped[Optional[int]] = mapped_column(ForeignKey("country.sid"))
+    country: Mapped[Optional["Country"]] = relationship(back_populates="systems")
 
 
 class Daily(Base):
@@ -104,8 +84,8 @@ class Weekly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="weekly")
-    year: Mapped[datetime.date.year] = mapped_column()
-    week: Mapped[datetime.date.isocalendar.week] = mapped_column()
+    year: Mapped[int] = mapped_column()
+    week: Mapped[int] = mapped_column()
     generated: Mapped[str] = mapped_column()
     efficiency: Mapped[str] = mapped_column()
     exported: Mapped[str] = mapped_column()
@@ -120,8 +100,8 @@ class Monthly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="monthly")
-    year: Mapped[datetime.date.year] = mapped_column()
-    month: Mapped[datetime.date.month] = mapped_column()
+    year: Mapped[int] = mapped_column()
+    month: Mapped[int] = mapped_column()
     generated: Mapped[str] = mapped_column()
     efficiency: Mapped[str] = mapped_column()
     exported: Mapped[str] = mapped_column()
@@ -136,7 +116,7 @@ class Yearly(Base):
 
     system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
     system: Mapped[Optional["System"]] = relationship(back_populates="yearly")
-    year: Mapped[datetime.date.year] = mapped_column()
+    year: Mapped[int] = mapped_column()
     generated: Mapped[str] = mapped_column()
     efficiency: Mapped[str] = mapped_column()
     exported: Mapped[str] = mapped_column()

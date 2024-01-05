@@ -8,9 +8,7 @@ from scrapy.loader.processors import MapCompose, TakeFirst # deprecated fix
 
 __all__ = [
     "CountryItem",
-    "LocationItem",
     "SystemItem",
-    "SystemInfoItem",
     "DailyItem",
     "MonthlyItem",
     "WeeklyItem",
@@ -31,17 +29,21 @@ class SystemItem(Item):
     name = Field(input_processor=strip_whitespace)
     id = Field()
     sid = Field()
-
-
-class LocationItem(Item):
-    system_sid = Field()
     latitude = Field()
     longitude = Field()
-
-
-class SystemInfoItem(Item):
-    sid = Field()
-    info = Field()
+    number_of_panels= Field()
+    panel_max_power = Field()
+    size = Field()
+    panel_brand = Field()
+    orientation = Field()
+    number_of_inverters = Field()
+    inverter_brand = Field()
+    inverter_size = Field()
+    post_code = Field()
+    installation_date = Field()
+    shading = Field()
+    tilt = Field()
+    comments = Field()
 
 
 class DailyItem(Item):

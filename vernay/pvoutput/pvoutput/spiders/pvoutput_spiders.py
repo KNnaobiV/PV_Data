@@ -191,7 +191,7 @@ class SystemLocationSpider(scrapy.Spider):
 
 
     def parse(self, response):
-        item = LocationItem()
+        item = SystemItem()
         # location = {}
         p_tag = response.xpath("(//p[@class='nowrap'])[2]")
         system_name = response.xpath("//b[@class='large']//text()").get()
@@ -211,7 +211,7 @@ class SystemLocationSpider(scrapy.Spider):
         
         item["latitude"] = location_info.group(1)
         item["longitude"] = location_info.group(2)
-        item["system_sid"] = self.sid
+        item["sid"] = self.sid
 
         # location["country"] = country
         # location["name"] = system_name
@@ -463,34 +463,35 @@ class SystemInfoSpider(scrapy.Spider):
     # ]
 
     def parse(self, response):
-        item = SystemInfoItem()
+        item = SystemItem()
         info_div = response.css("div.corner")
         info_table = response.xpath("//table/tr")
         info = info_table.xpath("./td[2]/input/@value").extract()
         system_info = {
-            "Name": info_div.css("b::text").extract(),
-            "NumberOfPanels": info[0],
-            "PanelMaxPower": info[1],
-            "Size": info[2],
-            "PanelBrand": info[3],
-            "Orientation": info[4],
-            "NumberOfInverters": info[5],
-            "InverterBrand": info[6],
-            "InverterSize": info[7],
-            "Postcode": info[8],
-            "InstallationDate": info[9],
-            "Shading": info[10],
-            "Tilt": info[11],
-            "Comments": info[12],
+            # "name": info_div.css("b::text").extract(),
+            "number_of_panels": info[0],
+            "panel_max_power": info[1],
+            "size": info[2],
+            "panel_brand": info[3],
+            "orientation": info[4],
+            "number_of_inverters": info[5],
+            "inverter_brand": info[6],
+            "inverter_size": info[7],
+            "post_code": info[8],
+            "installation_date": info[9],
+            "shading": info[10],
+            "tilt": info[11],
+            "comments": info[12],
         }
         
         df = pd.DataFrame.from_dict(system_info)
         save_file = os.path.join(self.SYSTEM_DIR, "info.csv")
         # df.to_csv(save_file)
+        for attr, val in system_info.items():
+            setattr(item, attr, val)
         item["sid"] = self.sid
-        item["info"] = system_info
         # system_info = json.dump(system_info)
         # yield {"system_sid": self.sid, "info":system_info}
-        pipeline = DataPipeline(item)
+        pipeline = DataPipeline(item, self.session)
         pipeline.process_item()
         yield item

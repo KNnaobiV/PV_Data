@@ -174,5 +174,5 @@ def get_infos(file):
 # get_system_info()
 # get_systems_in_country(" Switzerland")
 # get_countries()
-# get_systems_in_all_countries()
-get_system_info()
+get_systems_in_all_countries()
+# get_system_info()
