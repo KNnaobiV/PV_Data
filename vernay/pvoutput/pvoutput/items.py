@@ -47,7 +47,7 @@ class SystemItem(Item):
 
 
 class DailyItem(Item):
-    system_sid = Field()
+    sid = Field()
     date = Field()
     generated = Field()
     efficiency = Field()
@@ -58,7 +58,7 @@ class DailyItem(Item):
 
 
 class MonthlyItem(Item):
-    system_sid = Field()
+    sid = Field()
     year = Field()
     month = Field()
     generated = Field()
@@ -71,7 +71,7 @@ class MonthlyItem(Item):
 
 
 class WeeklyItem(Item):
-    system_sid = Field()
+    sid = Field()
     year = Field()
     week = Field()
     generated = Field()
@@ -84,7 +84,7 @@ class WeeklyItem(Item):
 
 
 class YearlyItem(Item):
-    system_sid = Field()
+    sid = Field()
     year = Field()
     generated = Field()
     efficiency = Field()

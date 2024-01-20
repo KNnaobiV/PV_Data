@@ -1,7 +1,7 @@
-import os
-import itertools as it
 import glob
+import itertools as it
 from operator import itemgetter
+import os
 
 from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
@@ -38,9 +38,9 @@ DURATIONS = ["weekly", "monthly", "yearly"]
 
 def get_countries():
     session = load_session()
-    pipeline = DataPipeline(session)
+    # pipeline = DataPipeline(session)
     runner = CrawlerProcess(get_project_settings())
-    runner.crawl(GetCountries, pipeline=pipeline)
+    runner.crawl(GetCountries, session=session)
     runner.start()
 
 
@@ -67,7 +67,7 @@ def get_systems_in_all_countries():
     """
     try:
         session = load_session()
-        countries = session.query(Country).all()
+        countries = session.query(Country).all()[10:]
         for country in countries:
             # get_systems_in_country(country.sid, country.name)
             process = CrawlerProcess(get_project_settings())
@@ -78,23 +78,7 @@ def get_systems_in_all_countries():
 
 def get_system_info():
     """
-    Runs the crawler to get information on a system.
-    The system information is saved as a csv file under a folder with 
-    the system name in the system's country folder.
-
-    Note
-    ----
-    The csv files are saved as 'd.csv', 'w.csv', 'm.csv', 'y.csv'. These 
-    represent the daily, weekly, monthly and yearly data respectively.
-
-    Parameters
-    ----------
-    id: str or int
-        system id
-    sid: str or int
-        system sid
-    name, str:
-        system name
+    some some
     """
     """ df_list = []
     for file in SYSTEM_FILES:
@@ -107,19 +91,21 @@ def get_system_info():
 
     try:
         session = load_session()
-        systems = session.query(System).all()[:3]
+        systems = session.query(System).all()[:20]
+        process = CrawlerProcess(get_project_settings())
         for sys in systems:
             sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
             country = session.query(Country).filter_by(sid=sys.country_sid).first()
             country_name = country.name
 
-            # process.crawl(
-            #     SystemInfoSpider, 
-            #     sid=sys_sid, 
-            #     country_name=str(country_name), 
-            #     system_name=sys_name
-            # )
-            process = CrawlerProcess(get_project_settings())
+            process.crawl(
+                SystemInfoSpider, 
+                session=session,
+                sid=sys_sid, 
+                country_name=str(country_name), 
+                system_name=sys_name
+            )
+            # process = CrawlerProcess(get_project_settings())
             process.crawl(
                 SystemLocationSpider,
                 session=session,
@@ -128,15 +114,15 @@ def get_system_info():
                 country_name=str(country_name),
             )
 
-            process.crawl(
-                DailyPowerGenerationSpider, 
-                session=session,
-                sid=sys_sid, 
-                id=sys_id, 
-                country_name=str(country_name),
-                system_name=sys_name
-            )
-            durations = ["weekly", "monthly", "yearly"]
+            # process.crawl(
+            #     DailyPowerGenerationSpider, 
+            #     session=session,
+            #     sid=sys_sid, 
+            #     id=sys_id, 
+            #     country_name=str(country_name),
+            #     system_name=sys_name
+            # )
+            durations = ["monthly", "yearly"]
             for duration in durations:
                 process.crawl(
                     AggregatePowerGenerationSpider,
@@ -147,7 +133,7 @@ def get_system_info():
                     system_name=sys_name,
                     duration=duration,
                 )
-        process.start(stop_after_crawl=False)
+        process.start()
     finally:
         session.close()
     # process.start(stop_after_crawl=False)
@@ -174,5 +160,5 @@ def get_infos(file):
 # get_system_info()
 # get_systems_in_country(" Switzerland")
 # get_countries()
-get_systems_in_all_countries()
-# get_system_info()
+# get_systems_in_all_countries()
+get_system_info()

@@ -44,7 +44,7 @@ def format_time(time):
 
 def format_isocalendar(period):
     formatted_period = period + "-1"
-    dt = datetime.datetime.strptime(formatted_period, "%Y-%W-%w")
+    dt = datetime.strptime(formatted_period, "%Y-%W-%w")
     calendar = dt.isocalendar()
     return calendar
 
@@ -53,7 +53,7 @@ def month_str_to_dt(period):
     period = period.split(" ")
     period[0], period[1] = period[0] + " 1", " 20" + period[1]
     period = "".join(period)
-    dt = datetime.datetime.strptime(period, "%b %d %Y")
+    dt = datetime.strptime(period, "%b %d %Y")
     return dt
 
 def format_energy_generated(energy_gen):
@@ -76,6 +76,22 @@ def format_energy_gen_rate(energy_gen_rate):
     return energy_gen_rate
 
 
+def process_list(lst):
+    if isinstance(lst[0], list):
+        return process_list(lst[0])
+    else:
+        return lst[0]
+
+    
+def process_dict(dct):
+    for key, val in dct.items():
+        if isinstance(val, list):
+            process_dict[key] = process_list(val)
+        else:
+            dct[key] = val
+    return dct
+
+
 class GetCountries(scrapy.Spider):
     """
     Crawls all countries and gets their name and sid
@@ -84,6 +100,9 @@ class GetCountries(scrapy.Spider):
     start_urls = [
         f"https://pvoutput.org/ladder.jsp?f=1&country={i}" for i in range(257)
     ]
+
+    def __init__(self, session):
+        self.session = session
 
     def parse(self, response):
         # loader = ItemLoader(item=CountryItem(), response=response)
@@ -94,6 +113,8 @@ class GetCountries(scrapy.Spider):
             if country_id:
                 country_id = country_id.group(1)
                 # loader.add_value("sid", country_id)
+            else:
+                return
             
 
             table_rows = response.css(".e2, .o2")
@@ -103,7 +124,7 @@ class GetCountries(scrapy.Spider):
             
             item["name"] = strip_whitespace(country)
             item["sid"] = country_id
-        pipeline = DataPipeline(item)
+        pipeline = DataPipeline(item, self.session)
         pipeline.process_item()
             # loader.add_value("name", country)
         # yield loader.load_item()
@@ -114,6 +135,12 @@ class CountrySystemsSpider(scrapy.Spider):
     Gets all the system ids for a country
     """
     name = "country_systems_spider"
+    
+    @classmethod
+    def update_settings(cls, settings):
+        super().update_settings(settings)
+        settings.set("TELNETCONSOLE_ENABLED", False, priority="spider")
+
 
     def __init__(self, sid, country, session):
         self.country_sid = sid
@@ -180,10 +207,10 @@ class SystemLocationSpider(scrapy.Spider):
         self.session = session
 
 
-    # @classmethod
-    # def update_settings(cls, settings):
-    #     super().update_settings(settings)
-    #     settings.set("TELNETCONSOLE_ENABLED", False, priority="spider")
+    @classmethod
+    def update_settings(cls, settings):
+        super().update_settings(settings)
+        settings.set("TELNETCONSOLE_ENABLED", False, priority="spider")
 
 
     def start_requests(self):
@@ -296,10 +323,13 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                     "average": tr.xpath("td[8]//text()").extract(),
                     "comments": tr.xpath("td[9]//text()").extract(),
                 }
+
                 for key, value in item.items():
                     if isinstance(value, list):
                         if value:
-                            item[key] = value[0]
+                            item[key] = process_list(value)
+                    else:
+                        item[key] = value
                 self.items_list.append(item)
             
         next_link = response.xpath("//a[contains(text(), 'Next')]")
@@ -320,20 +350,21 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
             for item in self.items_list:
                 try:
                     period = get_period(item["period"])
+    
+                    if isinstance(self.item, YearlyItem):
+                        self.item["year"] = datetime.strptime(period, "%Y").year
+                    elif isinstance(self.item, MonthlyItem):
+                        dt = month_str_to_dt(period)
+                        self.item["month"] = dt.month
+                        self.item["year"] = dt.year
+                    elif isinstance(self.item, WeeklyItem):
+                        calendar = format_isocalendar(period)
+                        self.item["week"] = calendar.week
+                        self.item["year"] = calendar.year
                 except (ValueError, TypeError):
                     continue
-                if isinstance(self.item, YearlyItem):
-                    self.item["year"] = datetime.strptime(period, "%Y").year
-                elif isinstance(self.item, MonthlyItem):
-                    dt = month_str_to_dt(period)
-                    self.item["month"] = dt.month
-                    self.item["year"] = dt.year
-                elif isinstance(self.item, WeeklyItem):
-                    calendar = format_isocalendar(period)
-                    self.item["week"] = calendar.week
-                    self.item["year"] = calendar.year
         
-                self.item["system_sid"] = self.sid
+                self.item["sid"] = self.sid
                 self.item["generated"] = format_energy_generated(item["generated"])
                 self.item["efficiency"] = format_energy_gen_rate(item["efficiency"])
                 self.item["exported"] = format_energy_generated(item["exported"])
@@ -342,8 +373,8 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
                 self.item["high"] = format_energy_generated(item["high"])
                 self.item["average"] = format_energy_generated(item["average"])
 
-            pipeline = DataPipeline(self.item, self.session)
-            pipeline.process_item()
+                pipeline = DataPipeline(self.item, self.session)
+                pipeline.process_item()
             # yield item
             # yield {"system_sid": self.sid, f"{duration.lower()}_df": df_as_json}
 
@@ -484,11 +515,11 @@ class SystemInfoSpider(scrapy.Spider):
             "comments": info[12],
         }
         
-        df = pd.DataFrame.from_dict(system_info)
-        save_file = os.path.join(self.SYSTEM_DIR, "info.csv")
+        # df = pd.DataFrame.from_dict(system_info)
+        # save_file = os.path.join(self.SYSTEM_DIR, "info.csv")
         # df.to_csv(save_file)
         for attr, val in system_info.items():
-            setattr(item, attr, val)
+            item[attr] = val
         item["sid"] = self.sid
         # system_info = json.dump(system_info)
         # yield {"system_sid": self.sid, "info":system_info}

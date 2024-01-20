@@ -31,7 +31,8 @@ def create_tables(engine):
 class Country(Base):
     __tablename__ = "country"
 
-    sid: Mapped[int] = mapped_column(primary_key=True)
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(unique=True)
     name: Mapped[str] = mapped_column(nullable=False)
     systems: Mapped[Optional["System"]] = relationship(back_populates="country", uselist=True)
 
@@ -39,24 +40,25 @@ class Country(Base):
 class System(Base): 
     __tablename__ = "system"
 
-    sid: Mapped[int] = mapped_column(primary_key=True)
-    id: Mapped[int] = mapped_column()
-    name: Mapped[str] = mapped_column()
-    latitude: Mapped[float] = mapped_column()
-    longitude: Mapped[float] = mapped_column()
-    number_of_panels: Mapped[int] = mapped_column()
-    panel_max_power: Mapped[float] = mapped_column()
-    size: Mapped[float] = mapped_column()
-    panel_brand: Mapped[str] = mapped_column()
-    orientation: Mapped[str] = mapped_column()
-    number_of_inverters: Mapped[int] = mapped_column()
-    inverter_brand: Mapped[str] = mapped_column()
-    inverter_size: Mapped[float] = mapped_column()
-    post_code: Mapped[str] = mapped_column()
-    installation_date: Mapped[str] = mapped_column()
-    shading: Mapped[str] = mapped_column()
-    tilt: Mapped[str] = mapped_column()
-    comments: Mapped[str] = mapped_column()
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(unique=True)
+    id: Mapped[int] = mapped_column(nullable=True)
+    name: Mapped[str] = mapped_column(nullable=True)
+    latitude: Mapped[float] = mapped_column(nullable=True)
+    longitude: Mapped[float] = mapped_column(nullable=True)
+    number_of_panels: Mapped[int] = mapped_column(nullable=True)
+    panel_max_power: Mapped[float] = mapped_column(nullable=True)
+    size: Mapped[float] = mapped_column(nullable=True)
+    panel_brand: Mapped[str] = mapped_column(nullable=True)
+    orientation: Mapped[str] = mapped_column(nullable=True)
+    number_of_inverters: Mapped[int] = mapped_column(nullable=True)
+    inverter_brand: Mapped[str] = mapped_column(nullable=True)
+    inverter_size: Mapped[float] = mapped_column(nullable=True)
+    post_code: Mapped[str] = mapped_column(nullable=True)
+    installation_date: Mapped[str] = mapped_column(nullable=True)
+    shading: Mapped[str] = mapped_column(nullable=True)
+    tilt: Mapped[str] = mapped_column(nullable=True)
+    comments: Mapped[str] = mapped_column(nullable=True)
     daily: Mapped[Optional["Daily"]] = relationship(uselist=False, back_populates='system')
     weekly: Mapped[Optional["Weekly"]] = relationship(uselist=False, back_populates='system')
     monthly: Mapped[Optional["Monthly"]] = relationship(uselist=False, back_populates='system')
@@ -68,7 +70,8 @@ class System(Base):
 class Daily(Base):
     __tablename__ = "daily"
 
-    system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(ForeignKey("system.sid"))
     system: Mapped[Optional["System"]] = relationship(back_populates="daily")
     date: Mapped[datetime.date] = mapped_column()
     generated: Mapped[str] = mapped_column()
@@ -82,7 +85,8 @@ class Daily(Base):
 class Weekly(Base):
     __tablename__ = "weekly"
 
-    system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(ForeignKey("system.sid"))
     system: Mapped[Optional["System"]] = relationship(back_populates="weekly")
     year: Mapped[int] = mapped_column()
     week: Mapped[int] = mapped_column()
@@ -98,7 +102,8 @@ class Weekly(Base):
 class Monthly(Base):
     __tablename__ = "monthly"
 
-    system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(ForeignKey("system.sid"))
     system: Mapped[Optional["System"]] = relationship(back_populates="monthly")
     year: Mapped[int] = mapped_column()
     month: Mapped[int] = mapped_column()
@@ -114,7 +119,8 @@ class Monthly(Base):
 class Yearly(Base):
     __tablename__ = "yearly"
 
-    system_sid: Mapped[int] = mapped_column(ForeignKey("system.sid"), primary_key=True)
+    pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sid: Mapped[int] = mapped_column(ForeignKey("system.sid"))
     system: Mapped[Optional["System"]] = relationship(back_populates="yearly")
     year: Mapped[int] = mapped_column()
     generated: Mapped[str] = mapped_column()
