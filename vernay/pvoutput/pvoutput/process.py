@@ -98,31 +98,31 @@ def get_system_info():
             country = session.query(Country).filter_by(sid=sys.country_sid).first()
             country_name = country.name
 
-            process.crawl(
-                SystemInfoSpider, 
-                session=session,
-                sid=sys_sid, 
-                country_name=str(country_name), 
-                system_name=sys_name
-            )
-            # process = CrawlerProcess(get_project_settings())
-            process.crawl(
-                SystemLocationSpider,
-                session=session,
-                sid=sys_sid, 
-                id=sys_id, 
-                country_name=str(country_name),
-            )
-
             # process.crawl(
-            #     DailyPowerGenerationSpider, 
+            #     SystemInfoSpider, 
+            #     session=session,
+            #     sid=sys_sid, 
+            #     country_name=str(country_name), 
+            #     system_name=sys_name
+            # )
+            # process = CrawlerProcess(get_project_settings())
+            # process.crawl(
+            #     SystemLocationSpider,
             #     session=session,
             #     sid=sys_sid, 
             #     id=sys_id, 
             #     country_name=str(country_name),
-            #     system_name=sys_name
             # )
-            durations = ["monthly", "yearly"]
+
+            process.crawl(
+                DailyPowerGenerationSpider, 
+                session=session,
+                sid=sys_sid, 
+                id=sys_id, 
+                country_name=str(country_name),
+                system_name=sys_name
+            )
+            durations = ["weekly"]
             for duration in durations:
                 process.crawl(
                     AggregatePowerGenerationSpider,

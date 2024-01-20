@@ -67,13 +67,28 @@ def format_energy_generated(energy_gen):
 
 
 def format_energy_gen_rate(energy_gen_rate):
-    if energy_gen_rate.endswith("kWh/kW"):
+    if energy_gen_rate.lower().endswith("kwh/kw"):
         return energy_gen_rate
-    elif energy_gen_rate.endswith("MWh/kW"):
+    elif energy_gen_rate.lower().endswith("mwh/kw"):
         energy_gen_rate = f"{float(energy_gen_rate[:-6].replace(',', '')) * 1000}kWh/kW"
-    elif energy_gen_rate.endswith("Wh/kW"):
+    elif energy_gen_rate.lower().endswith("wh/kw"):
         energy_gen_rate = f"{float(energy_gen_rate[:-5].replace(',', '')) / 100}kWh/kW"
     return energy_gen_rate
+
+
+
+def format_power(power):
+    if power.lower().endswith("w"):
+        power = int(power[:-1])
+    elif power.lower.endswith("kw"):
+        power = int(power[:-2]) * 1000
+    elif power.lower().endswith("mw"):
+        power = int(power[:-2]) * 1000000
+    return power
+
+
+def format_tilt(tilt):
+    return float(tilt[:-7])
 
 
 def process_list(lst):
@@ -501,17 +516,17 @@ class SystemInfoSpider(scrapy.Spider):
         system_info = {
             # "name": info_div.css("b::text").extract(),
             "number_of_panels": info[0],
-            "panel_max_power": info[1],
-            "size": info[2],
+            "panel_max_power": format_power(info[1]),
+            "size": format_power(info[2]),
             "panel_brand": info[3],
             "orientation": info[4],
             "number_of_inverters": info[5],
             "inverter_brand": info[6],
-            "inverter_size": info[7],
+            "inverter_size": format_power(info[7]),
             "post_code": info[8],
             "installation_date": info[9],
             "shading": info[10],
-            "tilt": info[11],
+            "tilt": format_tilt(info[11]),
             "comments": info[12],
         }
         

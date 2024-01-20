@@ -60,6 +60,7 @@ class DataPipeline:
         sid = kwargs.pop("sid")
         for attr, val in kwargs.items():
             setattr(instance, attr, val)
+            self.session.flush()
 
 
     def save_item(self):
@@ -80,7 +81,6 @@ class DataPipeline:
             self.save_item()
         except:
             self.session.rollback()
-            pdb.set_trace()
             raise
         return self.item
         
