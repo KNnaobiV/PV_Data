@@ -96,7 +96,6 @@ class DataPipeline:
 
 
     def process_item(self):
-        # with suppress(IntegrityError):
         try:
             self.save_item()
         except:

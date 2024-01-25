@@ -14,12 +14,10 @@ import sys
 cwd = os.getcwd()
 path = os.path.dirname(os.path.join(cwd, "pv_scrapper", "src", "pvoutput", "pvoutput", "spiders"))
 sys.path.append(path)
-# from definitions import SCRAPPER_ROOT_DIR
 from items import *
 from pipelines import DataPipeline
 from vernay.utils import get_or_create_dir
 
-# COUNTRIES_DIR = os.path.join(SCRAPPER_ROOT_DIR, "output", "countries")
 
 def strip_whitespace(value):
     if isinstance(value, str):
@@ -123,14 +121,12 @@ class GetCountries(scrapy.Spider):
         self.session = session
 
     def parse(self, response):
-        # loader = ItemLoader(item=CountryItem(), response=response)
         item = CountryItem()
         with suppress(IndexError):
             url = response.request.url
             country_id = re.search(r"country=(\d+)", url)
             if country_id:
                 country_id = country_id.group(1)
-                # loader.add_value("sid", country_id)
             else:
                 return
             
@@ -144,8 +140,6 @@ class GetCountries(scrapy.Spider):
             item["sid"] = country_id
         pipeline = DataPipeline(item, self.session)
         pipeline.process_item()
-            # loader.add_value("name", country)
-        # yield loader.load_item()
 
 
 class CountrySystemsSpider(scrapy.Spider):
@@ -198,9 +192,6 @@ class CountrySystemsSpider(scrapy.Spider):
             next_href = f"https://pvoutput.org/ladder.jsp{next_href}"
             yield scrapy.Request(next_href, self.parse)
         else:
-            # systems_file = os.path.join(self.country_dir, "systems.csv")
-            # df = pd.DataFrame(self.systems)
-            # df.to_csv(systems_file)
             for system in self.systems:
                 if not system["sid"]:
                     continue
@@ -221,7 +212,6 @@ class SystemLocationSpider(scrapy.Spider):
     name = "system_location_spider"
     def __init__(self, id, sid, country_name, session):
         self.sid = sid
-        # self.SYSTEM_DIR = get_or_create_dir(COUNTRIES_DIR, country_name)
         self.session = session
 
 
@@ -247,10 +237,6 @@ class SystemLocationSpider(scrapy.Spider):
             r"center:\s*\[([\d.-]+),\s*([\d.-]+)\]", script_map_info
         )
 
-        # self.SYSTEM_DIR = get_or_create_dir(
-        #     COUNTRY_DIR, country.lower(), system_name.lower()
-        # )
-
         if not location_info:
             return
         
@@ -258,23 +244,6 @@ class SystemLocationSpider(scrapy.Spider):
         item["longitude"] = location_info.group(2)
         item["sid"] = self.sid
 
-        # location["country"] = country
-        # location["name"] = system_name
-        # location["latitude"] = location_info.group(1)
-        # location["longitude"] = location_info.group(2)
-        # latitude = location["latitude"]
-        # longitude = location["longitude"]
-        
-        # df = pd.DataFrame(location, index=[1])
-        # save_file = os.path.join(self.SYSTEM_DIR, "location.csv")
-        # df.to_csv(save_file)
-       
-        # location = json.dumps(location)
-        # yield {
-        #     "system_sid": self.sid, 
-        #     "latitude": latitude, 
-        #     "longitude": longitude,
-        # }
         pipeline = DataPipeline(item, self.session)
         pipeline.process_item()
         yield item
@@ -291,9 +260,6 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
         self.country_name = country_name
         self.system_name = system_name
         self.session = session
-        # self.SYSTEM_DIR = get_or_create_dir(
-        #     COUNTRIES_DIR, self.country_name, self.system_name
-        # )
         duration_dict = {
             "weekly": "w",
             "monthly": "m",
@@ -356,15 +322,6 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
             next_href = f"https://pvoutput.org/aggregate.jsp{next_href}"
             yield scrapy.Request(next_href, self.parse)
         else:
-            # df = pd.DataFrame(
-            #     self.items_list, 
-            #     columns=[
-            #         "Month", "Generated", "Efficiency", "Exported", 
-            #         "FIT Credit", "Low", "High", "Average", "Comments"
-            #     ]
-            # )
-            # save_file = os.path.join(self.SYSTEM_DIR, f"{self.duration}.csv")
-            # # df.to_csv(save_file)
             for item in self.items_list:
                 try:
                     period = get_period(item["period"])
@@ -393,8 +350,6 @@ class AggregatePowerGenerationSpider(scrapy.Spider):
 
                 pipeline = DataPipeline(self.item, self.session)
                 pipeline.process_item()
-            # yield item
-            # yield {"system_sid": self.sid, f"{duration.lower()}_df": df_as_json}
 
 
 class DailyPowerGenerationSpider(scrapy.Spider):
@@ -407,9 +362,6 @@ class DailyPowerGenerationSpider(scrapy.Spider):
         self.sid = sid
         self.country_name = country_name
         self.system_name = system_name
-        # self.SYSTEM_DIR = get_or_create_dir(
-        #     COUNTRIES_DIR, self.country_name, self.system_name
-        # )
         self.session = session
     
     name = "daily_power_generation_spider"
@@ -453,16 +405,6 @@ class DailyPowerGenerationSpider(scrapy.Spider):
             next_href = f"https://pvoutput.org/list.jsp{next_href}"
             yield scrapy.Request(next_href, self.parse)
         else:
-            # df = pd.DataFrame(
-            #     self.items_list, 
-            #     columns=[
-            #         "Date", "Generated", "Efficiency", "Exported", 
-            #         "Peak Power", "Peak Time", "Conditions", "Tempertature", 
-            #         "Comments"
-            #     ]
-            # )
-            # save_file = os.path.join(self.SYSTEM_DIR, "daily.csv")
-            # df.to_csv(save_file)
             for item in self.items_list:
                 self.item = DailyItem()
                 try:
@@ -478,8 +420,6 @@ class DailyPowerGenerationSpider(scrapy.Spider):
                 self.item["conditions"] = item["conditions"]
                 pipeline = DataPipeline(self.item, self.session)
                 pipeline.process_item()
-            # yield item
-            # yield {"system_sid": self.sid, "daily_df": df_as_json}
 
 
 class SystemInfoSpider(scrapy.Spider):
@@ -490,9 +430,6 @@ class SystemInfoSpider(scrapy.Spider):
         self.sid = sid
         self.country_name = country_name
         self.system_name = system_name
-        # self.SYSTEM_DIR = get_or_create_dir(
-        #     COUNTRIES_DIR, self.country_name, self.system_name
-        # )
         self.session = session
 
     name = "system_info_spider"
@@ -506,9 +443,7 @@ class SystemInfoSpider(scrapy.Spider):
 
     def start_requests(self):
         yield scrapy.Request(f"https://pvoutput.org/display.jsp?sid={self.sid}")
-    # start_urls = [
-    #     f"https://pvoutput.org/display.jsp?sid={self.sid}"
-    # ]
+
 
     def parse(self, response):
         item = SystemItem()
@@ -516,7 +451,6 @@ class SystemInfoSpider(scrapy.Spider):
         info_table = response.xpath("//table/tr")
         info = info_table.xpath("./td[2]/input/@value").extract()
         system_info = {
-            # "name": info_div.css("b::text").extract(),
             "number_of_panels": info[0],
             "panel_max_power": format_power(info[1]),
             "size": format_power(info[2]),
@@ -532,14 +466,9 @@ class SystemInfoSpider(scrapy.Spider):
             "comments": info[12],
         }
         
-        # df = pd.DataFrame.from_dict(system_info)
-        # save_file = os.path.join(self.SYSTEM_DIR, "info.csv")
-        # df.to_csv(save_file)
         for attr, val in system_info.items():
             item[attr] = val
         item["sid"] = self.sid
-        # system_info = json.dump(system_info)
-        # yield {"system_sid": self.sid, "info":system_info}
         pipeline = DataPipeline(item, self.session)
         pipeline.process_item()
         yield item
