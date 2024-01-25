@@ -46,6 +46,7 @@ class DataPipeline:
             self.model = models[item.__class__.__name__]
 
         self.item = item
+        self.filter_columns = self.get_filter_columns()
 
 
     def create_item(self, **kwargs):
@@ -62,17 +63,36 @@ class DataPipeline:
             setattr(instance, attr, val)
             self.session.flush()
 
+    def get_filter_columns(self):
+        filter_columns = ["sid"]
+        class_name = self.item.__class__.__name__
+        if class_name == "YearlyItem":
+            extra_filters = ["year"]
+        elif class_name == "MonthlyItem":
+            extra_filters = ["year", "month"]
+        elif class_name == "WeeklyItem":
+            extra_filters = ["year", "week"]
+        elif class_name == "DailyItem":
+            extra_filters = ["date"]
+        if extra_filters:
+            filter_columns.extend(extra_filters)
+        return filter_columns
+
 
     def save_item(self):
-        sid = self.item.get("sid", None)
+        filter_dict = {}
+        for field in self.filter_columns:
+            filter_dict[field] = self.item.get(field, None)
         with suppress(KeyError):
-            instance = self.session.query(self.model).filter_by(sid=sid).first() # why can't I do a get by sid?
+            instance = self.session.query(self.model).filter_by(**filter_dict).first() # why can't I do a get by sid?
             if instance:
                 self.update_item(instance, **self.item)
+                print(f"updated {self.item}")
             else:
                 self.create_item(**self.item)
+                print(f"created {self.item}")
             self.session.commit()
-            print(f"saved {self.item}")
+            
 
 
     def process_item(self):

@@ -78,7 +78,7 @@ class Daily(Base):
     efficiency: Mapped[str] = mapped_column()
     exported: Mapped[str] = mapped_column()
     peak_power: Mapped[str] = mapped_column()
-    peak_time: Mapped[datetime.time] = mapped_column()
+    peak_time: Mapped[datetime.time] = mapped_column(nullable=True)
     conditions: Mapped[str] = mapped_column()
 
 

@@ -7,7 +7,7 @@ from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
 
 # from definitions import get_countries, SCRAPPER_ROOT_DIR
-from models import Country, System
+from models import Country, System, Daily, Weekly, Monthly, Yearly
 from items import CountryItem
 from pipelines import DataPipeline
 from vernay.utils import query as q
@@ -122,17 +122,17 @@ def get_system_info():
                 country_name=str(country_name),
                 system_name=sys_name
             )
-            durations = ["weekly"]
-            for duration in durations:
-                process.crawl(
-                    AggregatePowerGenerationSpider,
-                    session=session,
-                    sid=sys_sid, 
-                    id=sys_id, 
-                    country_name=str(country_name),
-                    system_name=sys_name,
-                    duration=duration,
-                )
+            # durations = ["weekly"]
+            # for duration in durations:
+            #     process.crawl(
+            #         AggregatePowerGenerationSpider,
+            #         session=session,
+            #         sid=sys_sid, 
+            #         id=sys_id, 
+            #         country_name=str(country_name),
+            #         system_name=sys_name,
+            #         duration=duration,
+            #     )
         process.start()
     finally:
         session.close()

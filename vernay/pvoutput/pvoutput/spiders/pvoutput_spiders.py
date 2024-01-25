@@ -39,8 +39,11 @@ def day_period_to_date(period):
 
 
 def format_time(time):
-    time = datetime.strptime(time, "%I:%M%p").time()
-    return time
+    try:
+        time = datetime.strptime(time, "%I:%M%p").time()
+        return time
+    except ValueError:
+        return
 
 def format_isocalendar(period):
     formatted_period = period + "-1"
@@ -423,12 +426,10 @@ class DailyPowerGenerationSpider(scrapy.Spider):
         
 
     def parse(self, response):
-        self.item = DailyItem()
         system_name = response.xpath("//b[@class='large']//text()").get()
         table = response.xpath("//table[@id='tb']//tr")
         for index, tr in enumerate(table):
             if index >= 2:
-                a = tr.xpath("td[2]//text()").extract()
                 item = {
                     "date": tr.xpath("td[1]//text()").extract(),
                     "generated": tr.xpath("td[2]//text()").extract(),
@@ -463,20 +464,21 @@ class DailyPowerGenerationSpider(scrapy.Spider):
             # save_file = os.path.join(self.SYSTEM_DIR, "daily.csv")
             # df.to_csv(save_file)
             for item in self.items_list:
+                self.item = DailyItem()
                 try:
                     self.item["date"] = day_period_to_date(item["date"])
                 except (ValueError, TypeError):
                     continue
-                self.item["system_sid"] = self.sid
+                self.item["sid"] = self.sid
                 self.item["generated"] = format_energy_generated(item["generated"])
                 self.item["efficiency"] = format_energy_gen_rate(item["efficiency"])
                 self.item["exported"] = format_energy_generated(item["exported"])
                 self.item["peak_power"] = item["peak_power"]
                 self.item["peak_time"] = format_time(item["peak_time"])
                 self.item["conditions"] = item["conditions"]
-            pipeline = DataPipeline(self.item, self.session)
-            pipeline.process_item()
-            yield item
+                pipeline = DataPipeline(self.item, self.session)
+                pipeline.process_item()
+            # yield item
             # yield {"system_sid": self.sid, "daily_df": df_as_json}
 
 
