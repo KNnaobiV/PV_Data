@@ -13,9 +13,12 @@ from sqlalchemy.orm import relationship, Session
 from sqlalchemy.exc import NoResultFound, IntegrityError
 import sys
 sys.path.append(".")
-from models import *
-from items import *
-from vernay.utils import get_engine, load_session, save_item
+from pvoutput.pvoutput.models import *
+from pvoutput.pvoutput.items import *
+# from models import *
+# from items import *
+from utils import *
+# from vernay.utils import get_engine, load_session, save_item
 
 __all__ = [
     "DataPipeline",
@@ -64,7 +67,7 @@ class DataPipeline:
             self.session.flush()
 
     def get_filter_columns(self):
-        filter_columns = ["sid"]
+        filter_columns, extra_filters = ["sid"], None
         class_name = self.item.__class__.__name__
         if class_name == "YearlyItem":
             extra_filters = ["year"]

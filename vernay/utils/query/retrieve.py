@@ -3,6 +3,7 @@ __all__= [
     "get_db_url", 
     "get_id_from_name",
     "get_item_by_id",
+    "get_model_objects",
     "get_objects_by_filter", 
     "get_operator_filter_list",
     "get_objects_by_operator_filter",
@@ -13,11 +14,9 @@ import configparser
 import operator
 import os
 
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import NoResultFound
-from vernay.pvoutput.pvoutput.settings import DATABASE_URL
+from sqlalchemy import MetaData, Table
+
+from vernay.utils import load_session
 
 # write query for retrieving item from db
 
@@ -32,7 +31,7 @@ def get_db_url():
     return db_url
 
 
-def load_table(table_name):
+def load_table(table_name, engine):
     """
     Loads a db table
     
@@ -57,8 +56,8 @@ def filter_table(table_name, column_name, **kwargs):
     table = load_table(table_name)
     try:
         query = table.select().where(getattr(table.columns, column_name) == kwargs["value"])
-        session = load_session()
-        return session.execute(query).fetchall()
+        with load_session() as session:
+            return session.execute(query).fetchall()
     except Exception:
         return None
 
@@ -99,22 +98,22 @@ def get_operator_filter_list(column, **kwargs):
     return filter_list
 
 
-def get_objects_by_filter(session, model, **kwargs):
+def get_objects_by_filter(model, **kwargs):
     """
     Returns model filtered by items in kwargs.
 
-    :param session: session instance.
     :param model: model to be filtered.
     :param kwargs: dictionary of filter conditions. Keys are column names
         of the specified model which the should be filtered.
 
-    :return objects: filtered query of the model.
+    :return list of filtered query of the model.
     """
-    objects = session.query(model).filter_by(**kwargs).all()
-    return objects
+    with load_session() as session:
+        return session.query(model).filter_by(**kwargs).all()
+    
 
 
-def get_objects_by_operator_filter(session, model, column, **kwargs):
+def get_objects_by_operator_filter(model, column, **kwargs):
     """
     Gets model items filtered by the conditions in kwargs.
     .. note::
@@ -128,29 +127,38 @@ def get_objects_by_operator_filter(session, model, column, **kwargs):
     :param kwargs: dictionary of filter conditions. Specified keys
         are methods in python's operator module as `str`
 
-    :return objects: filtered query of the model.
+    :return: filtered query of the model.
     """
     filter_list = get_operator_filter_list(column, **kwargs)
-    objects = session.query(model).filter(*filter_list).all()
-    return objects
+    with load_session() as session:
+        return session.query(model).filter(*filter_list).all()
 
 
-def get_item_by_id(session, model, id):
+def get_item_by_id(model, id):
     """
     Retrieves a single item from the database by its unique identifier.
 
-    :param session: Session instance.
     :param model: Model representing the database table.
     :param id: Unique identifier of the item to retrieve.
 
     :return: The item corresponding to the provided ID, or None if not found.
     """
-    return session.query(model).get(id)
+    with load_session() as session:
+        return session.query(model).get(id)
 
 
-def get_id_from_name(session, model, name):
+def get_id_from_name(model, name): # change to a unique field name 
+    """
+    Retrieves a single item from the database by its unique identifier.
+
+    :param model: Model representing the database table.
+    :param name: Unique identifier of the item to retrieve.
+
+    :return: The item corresponding to the provided name, or None if not found.
+    """
     query_filter = {"name": name}
-    query_object = get_objects_by_filter(session, model, **query_filter)
+    with load_session() as session:
+        query_object = get_objects_by_filter(session, model, **query_filter)
     if len(query_object) > 1:
         raise ValueError
     query_object = query_object[0]
@@ -170,3 +178,15 @@ def get_class_by_tablename(fullname):
     for c in Base.registry._class_registry.data.values():
         if hasattr(c, "__table__") and c.__table__.fullname == fullname:
             return c
+
+
+def get_model_objects(model):
+    """
+    Returns all objects of a model.
+
+    :param model: name of the model to be retrieved.
+    :param session: Session instance.
+    :return: list of all model objects in the db.
+    """
+    with load_session() as session:
+        return session.query(model).all()

@@ -7,15 +7,25 @@ from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
 
 # from definitions import get_countries, SCRAPPER_ROOT_DIR
-from models import Country, System, Daily, Weekly, Monthly, Yearly
-from items import CountryItem
-from pipelines import DataPipeline
-from vernay.utils import query as q
-from vernay.utils import load_session
+from pvoutput.pvoutput.models import *
+from pvoutput.pvoutput.items import *
+from pvoutput.pvoutput.pipelines import *
+# from models import Country, System, Daily, Weekly, Monthly, Yearly
+# from items import CountryItem
+# from pipelines import DataPipeline
+# from vernay.utils import query as q
+# from vernay.utils import load_session
+from utils import load_session
 
 import pandas as pd
 
-from spiders.pvoutput_spiders import (
+# from spiders.pvoutput_spiders import (
+#     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
+#     CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider,
+#     GetCountries
+# )
+
+from pvoutput.pvoutput.spiders.pvoutput_spiders import (
     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
     CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider,
     GetCountries
