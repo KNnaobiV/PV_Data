@@ -6,19 +6,14 @@
 
 # useful for handling different item types with a single interface
 from contextlib import suppress
-import logging
-import pdb
 
-from sqlalchemy.orm import relationship, Session
-from sqlalchemy.exc import NoResultFound, IntegrityError
+from sqlalchemy.orm import relationship
 import sys
 sys.path.append(".")
 from pvoutput.pvoutput.models import *
 from pvoutput.pvoutput.items import *
-# from models import *
-# from items import *
 from utils import *
-# from vernay.utils import get_engine, load_session, save_item
+from vernay.utils import get_engine, load_session, save_item
 
 __all__ = [
     "DataPipeline",
@@ -95,7 +90,6 @@ class DataPipeline:
                 self.create_item(**self.item)
                 print(f"created {self.item}")
             self.session.commit()
-            
 
 
     def process_item(self):
