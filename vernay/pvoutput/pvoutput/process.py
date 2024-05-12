@@ -58,6 +58,8 @@ def get_systems_in_all_countries():
     try:
         session = load_session()
         countries = session.query(Country).all()
+        if not countries:
+            get_countries()
         for country in countries:
             process = CrawlerProcess(get_project_settings())
             process.crawl(CountrySystemsSpider, sid=country.sid, country=country.name, session=session)
@@ -75,6 +77,8 @@ def get_info_for_all_systems():
         session = load_session()
         systems = session.query(System).all()[:50]
         process = CrawlerProcess(get_project_settings())
+        if not systems:
+            get_systems_in_all_countries()
         for sys in systems:
             sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
             country = session.query(Country).filter_by(sid=sys.country_sid).first()
@@ -108,6 +112,8 @@ def get_power_generation_info_for_all_systems():
         session = load_session()
         systems = session.query(System).all()[:50]
         process = CrawlerProcess(get_project_settings())
+        if not systems:
+            get_systems_in_all_countries()
         for sys in systems:
             sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
             country = session.query(Country).filter_by(sid=sys.country_sid).first()

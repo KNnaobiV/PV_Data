@@ -1,2 +1,3 @@
 # from .definitions import get_countries
-# from pvoutput.process import *
+from vernay.pvoutput.pvoutput import process as scrapper
+
