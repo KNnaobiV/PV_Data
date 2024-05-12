@@ -34,7 +34,7 @@ class Country(Base):
     pk: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sid: Mapped[int] = mapped_column(unique=True)
     name: Mapped[str] = mapped_column(nullable=False)
-    systems: Mapped[Optional["System"]] = relationship(back_populates="country", uselist=True)
+    systems: Mapped[List["System"]] = relationship(back_populates="country")
 
 
 class System(Base): 
@@ -59,12 +59,12 @@ class System(Base):
     shading: Mapped[str] = mapped_column(nullable=True)
     tilt: Mapped[str] = mapped_column(nullable=True)
     comments: Mapped[str] = mapped_column(nullable=True)
-    daily: Mapped[Optional["Daily"]] = relationship(uselist=False, back_populates='system')
-    weekly: Mapped[Optional["Weekly"]] = relationship(uselist=False, back_populates='system')
-    monthly: Mapped[Optional["Monthly"]] = relationship(uselist=False, back_populates='system')
-    yearly: Mapped[Optional["Yearly"]] = relationship(uselist=False, back_populates='system')
-    country_sid: Mapped[Optional[int]] = mapped_column(ForeignKey("country.sid"))
-    country: Mapped[Optional["Country"]] = relationship(back_populates="systems")
+    daily: Mapped[List["Daily"]] = relationship(back_populates='system')
+    weekly: Mapped[List["Weekly"]] = relationship(back_populates='system')
+    monthly: Mapped[List["Monthly"]] = relationship(back_populates='system')
+    yearly: Mapped[List["Yearly"]] = relationship(back_populates='system')
+    country_sid: Mapped[int] = mapped_column(ForeignKey("country.sid"))
+    country: Mapped["Country"] = relationship(back_populates="systems",)
 
 
 class Daily(Base):
