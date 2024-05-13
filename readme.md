@@ -1,7 +1,7 @@
 # Vernay Project Overview
 
 ## Introduction
-The Vernay project consists of two main components: a data collector and a prediction model. The data collector is a prerequisite for running the prediction model, and it is responsible for gathering data related to photovoltaic (PV) system power generation. This data can be obtained either as CSV files or stored directly in an SQL database.
+The Vernay project consists of two main components: a data collector and a prediction model. The data collector is a prerequisite for running the prediction model, and it is responsible for gathering data related to photovoltaic (PV) system power generation. This data can be obtained either as CSV files or stored directly in an PostgreSQL database.
 
 ## Data Collection Process
 ### CSV Files
@@ -10,7 +10,7 @@ The Vernay project consists of two main components: a data collector and a predi
 
 ### SQL Database
 - Define the database connection parameters in `config.cfg`.
-- To collect data directly into an SQL database, follow the configuration steps and then run `vernay.scrape_all()`.
+- To collect data directly into an postgres database, follow the configuration steps and then run `vernay.scrape_all()`.
 
 
 ## Data Prediction Model

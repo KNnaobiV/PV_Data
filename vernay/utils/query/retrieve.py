@@ -15,6 +15,7 @@ import operator
 import os
 
 from sqlalchemy import MetaData, Table
+from sqlalchemy.orm import selectinload
 
 from vernay.utils import load_session
 
@@ -180,14 +181,19 @@ def get_class_by_tablename(fullname):
             return c
 
 
-def get_model_objects(model):
+def get_model_objects_with_relationships(model, *args):
     """
     Returns all objects of a model.
 
-    :param model: name of the model to be retrieved.
-    :param session: Session instance.
-    :return: list of all model objects in the db.
+    :param model: name of the model to be retrieved.\
+    :param args: forward relationships of the model to be loaded
+    :return: list of all model objects with their specified
+        forward relationships in the db.
+    
+    :note: grandchildren relationship of the model are not loaded.
     """
     with load_session() as session:
-        objects = session.query(model).all()
-        return objects
+        relationships = [selectinload(getattr(model, arg)) for arg in args]
+        if relationships:
+            return session.query(model).options(*relationships).all()
+        return session.query(model).all()

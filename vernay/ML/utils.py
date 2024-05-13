@@ -14,8 +14,8 @@ from vernay.pvoutput.pvoutput.models import (
     Country, Daily, Weekly, Monthly, Yearly, System
 )
 
-COUNTRY = get_model_objects(Country)
-SYSTEMS = get_model_objects(System)
+COUNTRY = get_model_objects(Country, "systems")
+SYSTEMS = get_model_objects(System, "daily", "weekly", "monthly", "yearly")
 DAILY = get_model_objects(Daily)
 WEEKLY = get_model_objects(Weekly)
 MONTHLY = get_model_objects(Monthly)
