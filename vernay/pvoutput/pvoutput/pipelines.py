@@ -10,9 +10,9 @@ from contextlib import suppress
 from sqlalchemy.orm import relationship
 import sys
 sys.path.append(".")
-from pvoutput.pvoutput.models import *
-from pvoutput.pvoutput.items import *
-from utils import *
+from vernay.pvoutput.pvoutput.models import *
+from vernay.pvoutput.pvoutput.items import *
+# from vernay.utils import *
 from vernay.utils import get_engine, load_session, save_item
 
 __all__ = [

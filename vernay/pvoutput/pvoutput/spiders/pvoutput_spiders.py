@@ -14,8 +14,8 @@ import sys
 cwd = os.getcwd()
 path = os.path.dirname(os.path.join(cwd, "pv_scrapper", "src", "pvoutput", "pvoutput", "spiders"))
 sys.path.append(path)
-from items import *
-from pipelines import DataPipeline
+from vernay.pvoutput.pvoutput.items import *
+from vernay.pvoutput.pvoutput.pipelines import DataPipeline
 from vernay.utils import get_or_create_dir
 
 

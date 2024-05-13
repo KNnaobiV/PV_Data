@@ -189,4 +189,5 @@ def get_model_objects(model):
     :return: list of all model objects in the db.
     """
     with load_session() as session:
-        return session.query(model).all()
+        objects = session.query(model).all()
+        return objects

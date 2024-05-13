@@ -2,20 +2,29 @@ import glob
 import itertools as it
 from operator import itemgetter
 import os
+import sys
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
+print(sys.path)
 
+import pandas as pd
+import psycopg2
+from psycopg2 import errors, errorcodes
 from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
+import sqlalchemy as sa
 
 # from definitions import get_countries, SCRAPPER_ROOT_DIR
-from models import Country, System, Daily, Weekly, Monthly, Yearly
-from items import CountryItem
-from pipelines import DataPipeline
+from vernay.pvoutput.pvoutput.models import (
+    Country, System, Daily, Weekly, Monthly, Yearly
+)
+from vernay.pvoutput.pvoutput.items import CountryItem
+from vernay.pvoutput.pvoutput.pipelines import DataPipeline
 from vernay.utils import query as q
 from vernay.utils import load_session
 
-import pandas as pd
-
-from spiders.pvoutput_spiders import (
+from vernay.pvoutput.pvoutput.spiders.pvoutput_spiders import (
     DailyPowerGenerationSpider, AggregatePowerGenerationSpider,
     CountrySystemsSpider, SystemInfoSpider, SystemLocationSpider,
     GetCountries
@@ -34,10 +43,10 @@ __all__ = [
 
 
 def get_countries():
-    session = load_session()
-    runner = CrawlerProcess(get_project_settings())
-    runner.crawl(GetCountries, session=session)
-    runner.start()
+    with load_session() as session:
+        runner = CrawlerProcess(get_project_settings())
+        runner.crawl(GetCountries, session=session)
+        runner.start()
 
 
 def get_systems_in_country(sid, name):
@@ -55,17 +64,21 @@ def get_systems_in_all_countries():
     """
     Runs crawler for all systems in all countries saved to the the db.    
     """
-    try:
-        session = load_session()
-        countries = session.query(Country).all()
-        if not countries:
-            get_countries()
+    with load_session() as session:
+        try:
+            countries = session.query(Country).all()
+            if not countries:
+                get_countries()
+        except sa.exc.ProgrammingError as e:
+            try:
+                raise e.orig
+            except errors.lookup(errorcodes.UNDEFINED_TABLE):
+                get_countries()
+        
         for country in countries:
             process = CrawlerProcess(get_project_settings())
             process.crawl(CountrySystemsSpider, sid=country.sid, country=country.name, session=session)
         process.start()
-    finally:
-        session.close()
 
 
 def get_info_for_all_systems():
@@ -73,12 +86,17 @@ def get_info_for_all_systems():
     Runs crawler to information and location data for all 
     systems saved to the db.
     """
-    try:
-        session = load_session()
-        systems = session.query(System).all()[:50]
-        process = CrawlerProcess(get_project_settings())
-        if not systems:
-            get_systems_in_all_countries()
+    with load_session() as session:
+        try:
+            systems = session.query(System).all()[:50]
+            process = CrawlerProcess(get_project_settings())
+            if not systems:
+                get_systems_in_all_countries()
+        except sa.exc.ProgrammingError as e:
+            try:
+                raise e.orig
+            except errors.lookup(errorcodes.UNDEFINED_TABLE):
+                get_systems_in_all_countries()
         for sys in systems:
             sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
             country = session.query(Country).filter_by(sid=sys.country_sid).first()
@@ -100,20 +118,25 @@ def get_info_for_all_systems():
                 country_name=str(country_name),
             )
         process.start()
-    finally:
-        session.close()
 
 
 def get_power_generation_info_for_all_systems():
     """
     Runs crawler to get power generation for all systems saved to the db.
     """
-    try:
-        session = load_session()
-        systems = session.query(System).all()[:50]
-        process = CrawlerProcess(get_project_settings())
-        if not systems:
-            get_systems_in_all_countries()
+    with load_session() as session:
+        try:
+            systems = session.query(System).all()[:50]
+            process = CrawlerProcess(get_project_settings())
+            if not systems:
+                get_systems_in_all_countries()
+        except sa.exc.ProgrammingError as e:
+            try: 
+                raise e.orig
+            except errors.lookup(errorcodes.UNDEFINED_TABLE) as e:
+                print(e)
+                get_systems_in_all_countries()
+            
         for sys in systems:
             sys_name, sys_id, sys_sid = sys.name, sys.id, sys.sid
             country = session.query(Country).filter_by(sid=sys.country_sid).first()
@@ -139,10 +162,8 @@ def get_power_generation_info_for_all_systems():
                     duration=duration,
                 )
         process.start()
-    finally:
-        session.close()
 
 
 # get_systems_in_all_countries()
 # get_info_for_all_systems()
-get_power_generation_info_for_all_systems()
+# get_power_generation_info_for_all_systems()

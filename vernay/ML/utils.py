@@ -1,9 +1,11 @@
 import sys
 import os
-current_dir = os.path.dirname(os.path.dirname(__file__))
+current_dir = os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))
+    )
 
 sys.path.append(current_dir)
-sys.path.append("..",)
+sys.path.append("../..")
 print(sys.path)
 
 
